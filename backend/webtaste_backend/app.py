@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 
+import os
 from flask import Flask
 from flask_restplus import Api
 from flask_sqlalchemy import SQLAlchemy
 
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/test.db'
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/test.db'
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI')
 db = SQLAlchemy(app)
 
 api = Api(app)
