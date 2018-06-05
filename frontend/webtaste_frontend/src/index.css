@@ -1,0 +1,57 @@
+/*body {*/
+  /*!*margin: 0;*!*/
+  /*!*padding: 0;*!*/
+  /*!*display: block;*!*/
+  /*!*margin-left: auto;*!*/
+  /*!*margin-right: auto;*!*/
+  /*!*text-align: center;*!*/
+  /*!*width: 40%;*!*/
+  /*!*font-family: sans-serif;*!*/
+  /*margin: auto;*/
+    /*width: 40%;*/
+    /*border: 3px solid #73AD21;*/
+    /*padding: 10px;*/
+/*}*/
+
+body {
+  background-color: lightgray;
+}
+
+
+#root {
+  /*margin: 0;*/
+  /*padding: 0;*/
+  /*display: block;*/
+  /*margin-left: auto;*/
+  /*margin-right: auto;*/
+  text-align: center;
+  /*width: 40%;*/
+  /*font-family: sans-serif;*/
+  margin: 30px auto auto auto;
+  width: 60%;
+  min-width: 300px;
+  max-width: 500px;
+  /*min-height: 400px;*/
+  background-color: white;
+  border: 2px solid gray;
+  padding: 20px;
+}
+
+.app {
+}
+
+.expInfoForm {
+  width: 50%;
+  min-width: 100px;
+  max-width: 200px;
+  margin: auto;
+  text-align: left;
+}
+
+.trialPlot {
+  width: 100%;
+}
+
+.abortButton {
+  text-align: left;
+}
