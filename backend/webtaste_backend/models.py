@@ -24,11 +24,16 @@ quest_update = api.model('Quest Update', {
 exp_info = api.model('Experiment Info', {
     'participant': fields.String(description='Participant ID',
                                  required=True),
+    'age': fields.String(description='Age in years', required=True),
+    'gender': fields.String(description='Gender', required=True,
+                            enum=['undisclosed / other', 'male',
+                                  'female']),
     'substance': fields.String(description='Substance', required=True,
                                enum=SUBSTANCES),
     'lateralization': fields.String(description='Lateralization',
                                     required=True,
-                                    enum=['left side', 'right side', 'both sides']),
+                                    enum=['left side', 'right side',
+                                          'both sides']),
     'session': fields.String(description='Session',
                              required=True),
     'date': fields.String(description='Date', required=True)})

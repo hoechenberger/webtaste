@@ -24,13 +24,15 @@ class Quest(Resource):
         models.exp_info.validate(payload)
 
         substance = payload['substance']
+        age = payload['age']
+        gender = payload['gender']
         session = payload['session']
         lateralization = payload['lateralization']
         participant = payload['participant']
         date = payload['date']
 
-        q = _init_quest(participant, session, substance, lateralization,
-                        date)
+        q = _init_quest(participant, age, gender, session, substance,
+                        lateralization, date)
         q.originPath = ''
 
         # Find the intensity / concentration we have actually prepared.
@@ -107,6 +109,61 @@ class QuestUpdate(Resource):
         return r
 
 
+def _gen_quest_report(quest_handler):
+    q = quest_handler
+    responses = q.data
+
+    concentrations = q.otherData['Concentration']
+    concentration_unit = 'log10 mol/L'
+    jars = q.otherData['Jar']
+    participant = q.extraInfo['Participant']
+    age = q.extraInfo['Age']
+    gender = q.extraInfo['Gender']
+    substance = q.extraInfo['Substance']
+    lateralization = q.extraInfo['Lateralization']
+    session = q.extraInfo['Session']
+    trials = list(range(1, len(responses) + 1))
+    modality = 'gustation'
+    method = 'QUEST'
+    comments = q.otherData.get('Comment', '')
+
+    dt_utc = datetime.strptime(q.extraInfo['Date'],
+                               '%a, %d %b %Y %H:%M:%S %Z')
+    date_utc = dt_utc.strftime('%Y-%m-%d %H:%M:%S')
+    time_zone = 'GMT'
+
+    data = pd.DataFrame(
+        dict(Participant=participant,
+             Age=age,
+             Gender=gender,
+             Modality=modality,
+             Substance=substance,
+             Lateralization=lateralization,
+             Method=method,
+             Session=session,
+             Trial=trials,
+             Jar=jars,
+             Concentration=concentrations,
+             Concentration_Unit=concentration_unit,
+             Response=responses,
+             Comment=comments,
+             Date=date_utc,
+             Time_Zone=time_zone))
+
+    f = StringIO()
+    data.to_csv(f, index=False)
+    print(data)
+    f.seek(0)
+
+    filename_base = (f'{participant}_'
+                     f'{modality[:4]}_'
+                     f'{lateralization.split(" ")[0]}_'
+                     f'{method}_'
+                     f'{session}')
+
+    filename_csv = filename_base + '.csv'
+    return filename_csv, f
+
 @api.route('/quest/report')
 class QuestReport(Resource):
     @api.expect(models.quest_handler)
@@ -114,55 +171,8 @@ class QuestReport(Resource):
         payload = json_tricks.loads(request.get_data(as_text=True))
         models.quest_handler.validate(payload)
 
-        q = payload['questHandler']
-        responses = q.data
-        num_responses = len(responses)
+        filename_csv, f = _gen_quest_report(payload['questHandler'])
 
-        concentrations = q.otherData['Concentration']
-        concentration_unit = 'log10 mol/L'
-        jars = q.otherData['Jar']
-        participant = q.extraInfo['Participant']
-        substance = q.extraInfo['Substance']
-        lateralization = q.extraInfo['Lateralization']
-        session = q.extraInfo['Session']
-        trials = list(range(1, len(responses)+1))
-        modality = 'gustation'
-        method = 'QUEST'
-        comments = q.otherData.get('Comment', '')
-
-        dt_utc = datetime.strptime(q.extraInfo['Date'],
-                               '%a, %d %b %Y %H:%M:%S %Z'                               )
-        date_utc = dt_utc.strftime('%Y-%m-%d %H:%M:%S')
-        time_zone = 'GMT'
-
-        data = pd.DataFrame(
-            dict(Participant=participant,
-                 Modality=modality,
-                 Substance=substance,
-                 Lateralization=lateralization,
-                 Method=method,
-                 Session=session,
-                 Trial=trials,
-                 Jar=jars,
-                 Concentration=concentrations,
-                 Concentration_Unit=concentration_unit,
-                 Response=responses,
-                 Comment=comments,
-                 Date=date_utc,
-                 Time_Zone=time_zone))
-
-        f = StringIO()
-        data.to_csv(f, index=False)
-        print(data)
-        f.seek(0)
-
-        filename_base = (f'{participant}_'
-                         f'{modality[:4]}_'
-                         f'{lateralization.split(" ")[0]}_'
-                         f'{method}_'
-                         f'{session}')
-
-        filename_csv = filename_base + '.csv'
         print(filename_csv)
         r = Response(
             f,
@@ -173,8 +183,10 @@ class QuestReport(Resource):
         return r
 
 
-def _init_quest(participant, session, substance, lateralization, date):
+def _init_quest(participant, age, gender, session, substance,
+                lateralization, date):
     exp_info = dict(Participant=participant,
+                    Age=age, Gender=gender,
                     Substance=substance, Lateralization=lateralization,
                     Session=session, Date=date)
     start_val = get_start_val(substance)
