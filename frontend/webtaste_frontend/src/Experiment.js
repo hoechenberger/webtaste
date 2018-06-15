@@ -48,7 +48,7 @@ class TrialPlot extends Component {
 
 class DownloadReportButtton extends Component {
   _getQuestReportFromApi = async (questHandler) => {
-    const payload = { questHandler: this.props.questHandler };
+    const payload = { questHandler: questHandler };
 
     const response = await fetch('/quest/report', {
       method: 'post',

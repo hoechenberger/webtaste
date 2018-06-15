@@ -11,6 +11,8 @@ class App extends Component {
     staircaseFinished: false,
     expInfo: {
       participant: null,
+      age: null,
+      gender: null,
       session: null,
       lateralization: null,
       substance: null
@@ -40,6 +42,8 @@ class App extends Component {
       },
       body: JSON.stringify({
         participant: expInfo.participant,
+        age: expInfo.age,
+        gender: expInfo.gender,
         substance: expInfo.substance,
         lateralization: expInfo.lateralization,
         session: expInfo.session,

@@ -7,6 +7,8 @@ class Startup extends Component {
 
     const expInfo = {
       participant: e.target.elements['participant'].value,
+      age: e.target.elements['age'].value,
+      gender: e.target.elements['gender'].value,
       modality: e.target.elements['modality'].value,
       algorithm: e.target.elements['algorithm'],
       session: e.target.elements['session'].value,
@@ -30,6 +32,20 @@ class Startup extends Component {
           <FormGroup>
             <Label for="participant">Participant ID</Label>
             <Input name="participant" id="participant" defaultValue="000"/>
+          </FormGroup>
+          <FormGroup>
+            <Label for="age">Age</Label>
+            <Input type="number" name="age" id="age" min="0" max="120"
+                   defaultValue="0"/>
+          </FormGroup>
+          <FormGroup>
+            <Label for="gender">Gender</Label>
+            <Input type="select" name="gender" id="gender"
+                   onChange={this.handleModalityChange}>
+              <option>undisclosed / other</option>
+              <option>male</option>
+              <option>female</option>
+            </Input>
           </FormGroup>
           <FormGroup>
             <Label for="modality">Modality</Label>
