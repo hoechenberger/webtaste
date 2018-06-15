@@ -16,6 +16,40 @@ from .constants import CONCENTRATION_STEPS
 from .utils import find_nearest, get_start_val, get_jar_index
 
 
+@api.route('/api')
+class Api(Resource):
+    def get(self):
+        endpoints = {
+            '/api/measurement': 'Run a measurement.'
+        }
+
+        return endpoints
+
+
+@api.route('/api/measurement')
+class MeasurementApi(Resource):
+    def get(self):
+        endpoints = {
+            '/api/measurement/gustatory': 'A measurement of the gustatory '
+                                          'modality.',
+            '/api/measurement/olfactory': 'A measurement of the olfactory '
+                                          'modality.'
+        }
+
+        return endpoints
+
+
+@api.route('/api/measurement/gustatory')
+class GustatoryMeasurementApi(Resource):
+    def get(self):
+        endpoints = {
+            'quest': 'Use the QUEST algorithm.',
+            'quest+': 'Use the QUEST+ algorithm.'
+        }
+
+        return endpoints
+
+
 @api.route('/quest')
 class Quest(Resource):
     @api.expect(models.exp_info)
