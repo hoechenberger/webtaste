@@ -1,25 +1,8 @@
 import React, { Component } from 'react';
 import { Button, Form, FormGroup, Label, Input,
-  Card, CardBody, CardHeader, Collapse,
-  UncontrolledTooltip } from 'reactstrap';
+  Card, CardBody, CardHeader, Collapse } from 'reactstrap';
+import Tooltip from './Tooltip'
 
-// import questionMark from './img/question_mark.svg';
-
-
-class Tooltip extends Component {
-  render () {
-    const id = this.props.id;
-    const msg = this.props.text;
-
-    return (
-      <div className="tooltip-element" id={id}>
-        <UncontrolledTooltip placement="right" target={id}>
-          {msg}
-        </UncontrolledTooltip>
-      </div>
-    )
-  }
-}
 
 class AlgorithmInput extends Component {
   render() {
