@@ -40,7 +40,7 @@ class TrialPlot extends Component {
 
     return (
       <Plot data={[data]} layout={layout} config={config}
-            useResizeHandler={true} className='trialPlot'/>
+            useResizeHandler={true} className='trial-plot'/>
     );
   }
 }
@@ -96,12 +96,19 @@ class ConfirmRestartModal extends Component {
     return (
       <span>
         {/*<Button color="danger" onClick={this.toggle}>{this.props.buttonLabel}</Button>*/}
-        <Modal isOpen={this.props.show} toggle={this.props.toggle} className={this.props.className}>
+        <Modal isOpen={this.props.show} toggle={this.props.toggle}
+               className={this.props.className}>
           <ModalHeader toggle={this.props.toggle}>{this.props.header}</ModalHeader>
           <ModalBody>{this.props.body}</ModalBody>
           <ModalFooter>
-            <Button color="primary" onClick={this.handleConfirm}>{this.props.confirmButtonText}</Button>{' '}
-            <Button color="secondary" onClick={this.props.toggle}>Cancel</Button>
+            <Button color="primary"
+                    onClick={this.handleConfirm}>
+              {this.props.confirmButtonText}
+            </Button>{' '}
+            <Button color="secondary"
+                    onClick={this.props.toggle}>
+              Cancel
+            </Button>
           </ModalFooter>
         </Modal>
       </span>
@@ -181,7 +188,7 @@ class Experiment extends Component {
           <TrialPlot concentrations={this.props.concentrations }/>
         </div>
         {!this.props.finished ?
-          <div className='abortButton'>
+          <div className='abort-button'>
             <Button color="danger"
                     onClick={this.toggleConfirmRestartModal}>Abort</Button>
           </div>
