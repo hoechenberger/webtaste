@@ -27,10 +27,10 @@ body {
   text-align: center;
   /*width: 40%;*/
   /*font-family: sans-serif;*/
-  margin: 30px auto auto auto;
+  margin: 30px auto 30px auto;
   width: 60%;
-  min-width: 300px;
-  max-width: 500px;
+  min-width: 400px;
+  max-width: 600px;
   /*min-height: 400px;*/
   background-color: white;
   border: 2px solid gray;
@@ -41,9 +41,9 @@ body {
 }
 
 .expInfoForm {
-  width: 50%;
-  min-width: 100px;
-  max-width: 200px;
+  width: 70%;
+  min-width: 300px;
+  max-width: 450px;
   margin: auto;
   text-align: left;
 }
@@ -54,4 +54,36 @@ body {
 
 .abortButton {
   text-align: left;
+}
+
+.participantInfoCard,
+.experimentSettingsCard {
+  margin: 2em 0 0 0;
+}
+
+.startButton {
+  margin: 1em 0 0 0;
+}
+
+.participantInfoCard .card-header,
+.experimentSettingsCard .card-header {
+  text-align: center;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.tooltipElement {
+  display: inline-block;
+  margin: 0 0 0 0.75em;
+  width: 1.5em;
+  height: 1.5em;
+  /*line-height: 26px;*/
+  font-size: 0.8em;
+  border-radius: 50%;
+  background-color: lavender;
+  text-align: center;
+}
+
+.tooltipElement:before {
+  content: '?';
 }

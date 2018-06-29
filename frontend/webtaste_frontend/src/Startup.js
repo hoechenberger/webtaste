@@ -1,89 +1,369 @@
 import React, { Component } from 'react';
-import { Button, Form, FormGroup, Label, Input } from 'reactstrap';
+import { Button, Form, FormGroup, Label, Input,
+  Card, CardBody, CardHeader, Collapse,
+  UncontrolledTooltip } from 'reactstrap';
+
+// import questionMark from './img/question_mark.svg';
+
+
+class Tooltip extends Component {
+  render () {
+    const id = this.props.id;
+    const msg = this.props.text;
+
+    return (
+      <div className="tooltipElement" id={id}>
+        <UncontrolledTooltip placement="right" target={id}>
+          {msg}
+        </UncontrolledTooltip>
+      </div>
+    )
+  }
+}
+
+class AlgorithmInput extends Component {
+  render() {
+    let inputField;
+
+    if (this.props.modality === "gustation") {
+      inputField = (
+          <Input type="select" name="algorithm" id={this.props.id}
+              // Disabled if no modality has been selected so far
+                 disabled={this.props.modality === ""}
+                 value={this.props.value}
+                 onChange={this.props.onChange}
+                 required>
+            <option disabled value="" hidden>– select –</option>
+            <option>QUEST</option>
+          </Input>
+      )
+    } else {
+
+      inputField = (
+          <Input type="select" name="algorithm" id={this.props.id}
+              // Disabled if no modality has been selected so far
+                 disabled={this.props.modality === ""}
+                 value={this.props.value}
+                 onChange={this.props.onChange}
+                 required>
+            <option disabled value="" hidden>– select –</option>
+            <option>QUEST</option>
+            <option>Hummel</option>
+          </Input>
+      )
+    }
+
+    return inputField;
+  }
+}
+
+class SubstanceInput extends Component {
+  render() {
+    let inputField;
+    if (this.props.modality === "gustation") {
+      inputField = (
+          <Input type="select" name="substance" id={this.props.id}
+              // Disabled if no modality has been selected so far
+                 disabled={this.props.modality === ""}
+                 value={this.props.value}
+                 onChange={this.props.onChange}
+                 required>
+            <option disabled value="" hidden>– select –</option>
+            <option>sucrose</option>
+            <option>citric acid</option>
+            <option>sodium chloride</option>
+            <option>quinine hydrochloride</option>
+          </Input>
+      )
+    } else {
+      inputField = (
+          <Input type="select" name="substance" id={this.props.id}
+              // Disabled if no modality has been selected so far
+                 disabled={this.props.modality === ""}
+                 value={this.props.value}
+                 onChange={this.props.onChange}
+                 required>
+            <option disabled value="" hidden>– select –</option>
+            <option>olfactory-1</option>
+            <option>olfactory-2</option>
+          </Input>
+      )
+    }
+
+    return inputField;
+  }
+}
 
 class Startup extends Component {
+  state = {
+    participantInfoCardIsOpen: true,
+    experimentSettingsCardIsOpen: false,
+    participant: "",
+    age: "",
+    gender: "",
+    modality: "",
+    algorithm: "",
+    substance: "",
+    lateralization: "",
+    startVal: "",
+    session: "",
+    date: null
+  };
+
+  // componentDidMount = () => this.restoreStateFromLocalStorage();
+
+  // https://hackernoon.com/how-to-take-advantage-of-local-storage-in-your-react-projects-a895f2b2d3f2
+  restoreStateFromLocalStorage = () => {
+    // for all items in state
+    for (let key in this.state) {
+      // if the key exists in localStorage
+      if (localStorage.hasOwnProperty(key)) {
+        // get the key's value from localStorage
+        let value = localStorage.getItem(key);
+
+        // parse the localStorage string and call setState()
+        try {
+          value = JSON.parse(value);
+          this.setState({ [key]: value });
+        } catch (e) {
+          // handle empty string
+          this.setState({ [key]: value });
+        }
+      }
+    }
+  };
+
+  // https://hackernoon.com/how-to-take-advantage-of-local-storage-in-your-react-projects-a895f2b2d3f2
+  saveStateToLocalStorage = () => {
+    // for every item in React state
+    for (let key in this.state) {
+      // save to localStorage
+      localStorage.setItem(key, JSON.stringify(this.state[key]));
+    }
+  };
+
   handleSubmit = (e) => {
     e.preventDefault();
 
     const expInfo = {
-      participant: e.target.elements['participant'].value,
-      age: e.target.elements['age'].value,
-      gender: e.target.elements['gender'].value,
-      modality: e.target.elements['modality'].value,
-      algorithm: e.target.elements['algorithm'],
-      session: e.target.elements['session'].value,
-      lateralization: e.target.elements['lateralization'].value,
-      substance: e.target.elements['substance'].value,
+      participant: this.state.participant,
+      age: this.state.age,
+      gender: this.state.gender,
+      modality: this.state.modality,
+      algorithm: this.state.algorithm,
+      substance: this.state.substance,
+      lateralization: this.state.lateralization,
+      startVal: this.state.startVal,
+      session: this.state.session,
+      // Don't forget to add the current date & time :-)
       date: new Date().toUTCString()
     };
 
+    console.log(expInfo);
+    this.saveStateToLocalStorage();
     this.props.startStaircase(expInfo);
   };
 
-  handleModalityChange = (e) => {
-    console.log(e.target.value);
+  toggleParticipantInfoCard = () => {
+    const participantInfoCardIsOpen = !this.state.participantInfoCardIsOpen;
+    this.setState({participantInfoCardIsOpen: participantInfoCardIsOpen});
   };
+
+  toggleExperimentSettingsCard = () => {
+    const experimentSettingsCardIsOpen = !this.state.experimentSettingsCardIsOpen;
+    this.setState({experimentSettingsCardIsOpen: experimentSettingsCardIsOpen});
+  };
+
+  handleParticipantChange = (e) => {
+    this.setState({participant: e.target.value});
+  };
+
+  handleAgeChange = (e) => {
+    this.setState({age: e.target.value});
+  };
+
+  handleGenderChange = (e) => {
+    this.setState({gender: e.target.value});
+  };
+
+  handleModalityChange = (e) => {
+    this.setState({
+      modality: e.target.value,
+      substance: "",
+      algorithm: "",
+      startVal: ""
+    });
+  };
+
+  handleAlgorithmChange = (e) => {
+    this.setState({algorithm: e.target.value});
+  };
+
+  handleSubstanceChange = (e) => {
+    this.setState({substance: e.target.value});
+  };
+
+  handleLateralizationChange = (e) => {
+    this.setState({lateralization: e.target.value});
+  };
+
+  handleSessionChange = (e) => {
+    this.setState({session: e.target.value});
+  };
+
+  handleStartValChange = (e) => {
+    this.setState({startVal: e.target.value})
+  };
+
 
   render () {
     return (
       <div>
-        <h3>Experimental Info</h3>
         <Form onSubmit={this.handleSubmit} className='expInfoForm'>
-          <FormGroup>
-            <Label for="participant">Participant ID</Label>
-            <Input name="participant" id="participant" defaultValue="000"/>
-          </FormGroup>
-          <FormGroup>
-            <Label for="age">Age</Label>
-            <Input type="number" name="age" id="age" min="0" max="120"
-                   defaultValue="0"/>
-          </FormGroup>
-          <FormGroup>
-            <Label for="gender">Gender</Label>
-            <Input type="select" name="gender" id="gender"
-                   onChange={this.handleModalityChange}>
-              <option>undisclosed / other</option>
-              <option>male</option>
-              <option>female</option>
-            </Input>
-          </FormGroup>
-          <FormGroup>
-            <Label for="modality">Modality</Label>
-            <Input type="select" name="modality" id="modality"
-                   onChange={this.handleModalityChange}>
-              <option>gustation</option>
-              <option>olfaction</option>
-            </Input>
-          </FormGroup>
-          <FormGroup>
-            <Label for="algorithm">Algorithm</Label>
-            <Input type="select" name="algorithm" id="algorithm">
-              <option>QUEST+</option>
-              <option>QUEST</option>
-            </Input>
-          </FormGroup>
-          <FormGroup>
-            <Label for="substance">Substance</Label>
-            <Input type="select" name="substance" id="substance">
-              <option>sucrose</option>
-              <option>citric acid</option>
-              <option>sodium chloride</option>
-              <option>quinine hydrochloride</option>
-            </Input>
-          </FormGroup>
-          <FormGroup>
-            <Label for="lateralization">Lateralization</Label>
-            <Input type="select" name="lateralization" id="lateralization">
-              <option>both sides</option>
-              <option>left side</option>
-              <option>right side</option>
-            </Input>
-          </FormGroup>
-          <FormGroup>
-            <Label for="session">Session</Label>
-            <Input name="session" id="session" defaultValue="Test"/>
-          </FormGroup>
-          <Button color='success' id="startButton">Start</Button>
+          <Card className="participantInfoCard">
+            <CardHeader onClick={this.toggleParticipantInfoCard}>
+                Participant Info
+            </CardHeader>
+            <Collapse isOpen={this.state.participantInfoCardIsOpen}>
+              <CardBody>
+                <FormGroup>
+                  <Label for="participant">
+                    Participant ID
+                    <Tooltip text={"A unique, anonymous participant identifier " +
+                                   "that cannot be used to immediately identify a " +
+                                   "participant."}
+                             id="tooltip-participant-id"/>
+                  </Label>
+                  <Input name="participant" id="participant"
+                         placeholder="e.g. 123"
+                         value={this.state.participant}
+                         onChange={this.handleParticipantChange}
+                         required />
+                </FormGroup>
+
+                <FormGroup>
+                  <Label for="age">
+                    Age
+                    <Tooltip text="The participant's age, in years."
+                             id="tooltip-age"/>
+                  </Label>
+                  <Input type="number" name="age" id="age" min="0" max="120"
+                         placeholder="Age in years"
+                         value={this.state.age}
+                         onChange={this.handleAgeChange}
+                         required />
+                </FormGroup>
+
+                <FormGroup>
+                  <Label for="gender">Gender</Label>
+                  <Tooltip text="The participant's gender. If unknown, select 'undisclosed / other'."
+                           id="tooltip-gender"/>
+                  <Input type="select" name="gender" id="gender"
+                         placeholder="Gender"
+                         value={this.state.gender}
+                         onChange={this.handleGenderChange}
+                         required>
+                    <option disabled value="" hidden>– select –</option>
+                    <option>undisclosed / other</option>
+                    <option>male</option>
+                    <option>female</option>
+                  </Input>
+                </FormGroup>
+              </CardBody>
+            </Collapse>
+          </Card>
+
+          <Card className="experimentSettingsCard">
+            <CardHeader onClick={this.toggleExperimentSettingsCard}>
+                Experiment Settings
+            </CardHeader>
+            <Collapse isOpen={this.state.experimentSettingsCardIsOpen}>
+              <CardBody>
+                <FormGroup>
+                  <Label for="modality">Modality</Label>
+                  <Tooltip text="Which modality to test: gustatory (taste) or olfactory (smell)?"
+                           id="tooltip-modality"/>
+                  <Input type="select" name="modality" id="modality"
+                         value={this.state.modality}
+                         onChange={this.handleModalityChange}
+                         required>
+                    <option disabled value="" hidden>– select –</option>
+                    <option>gustation</option>
+                    <option>olfaction</option>
+                  </Input>
+                </FormGroup>
+                <FormGroup>
+                  <Label for="algorithm">Algorithm</Label>
+                  <Tooltip text="The algorithm to use. See the documentation for details."
+                           id="tooltip-algorithm"/>
+                  <AlgorithmInput
+                      modality={this.state.modality}
+                      value={this.state.algorithm}
+                      onChange={this.handleAlgorithmChange}
+                      id="algorithm"
+                  />
+                </FormGroup>
+                <FormGroup>
+                  <Label for="substance">Substance</Label>
+                  <Tooltip text={"Which substance to test. See the documentation for an overview " +
+                                 "of required dilutions."}
+                           id="tooltip-substance"/>
+                  <SubstanceInput
+                      modality={this.state.modality}
+                      value={this.state.substance}
+                      onChange={this.handleSubstanceChange}
+                      id="substance"
+                  />
+                </FormGroup>
+                <FormGroup>
+                  <Label for="lateralization">Lateralization</Label>
+                  <Tooltip text={"Whether to test on both sides (bilateral testing) or on only " +
+                                 "one side (unilateral testing)."}
+                           id="tooltip-lateralization"/>
+                  <Input type="select" name="lateralization" id="lateralization"
+                         value={this.state.lateralization}
+                         onChange={this.handleLateralizationChange}
+                         required>
+                    <option disabled value="" hidden>– select –</option>
+                    <option>both sides</option>
+                    <option>left side</option>
+                    <option>right side</option>
+                  </Input>
+                </FormGroup>
+                {this.state.modality === "olfaction" ? (
+                        <FormGroup>
+                          <Label for="startval">
+                            Starting concentration
+                            <Tooltip text="The starting concentration."
+                                     id="startval"/>
+                          </Label>
+                          <Input type="select" name="startval" id="startval"
+                                 value={this.state.startVal}
+                                 onChange={this.handleStartValChange}
+                                 required>
+                            <option disabled value="" hidden>– select –</option>
+                            <option>15</option>
+                            <option>16</option>
+                          </Input>
+                        </FormGroup>
+                    ) : null
+                }
+
+                <FormGroup>
+                  <Label for="session">Session</Label>
+                  <Tooltip text="A name for this experimental session."
+                           id="tooltip-session"/>
+                  <Input name="session" id="session"
+                         placeholder="e.g. Test, Retest"
+                         value={this.state.session}
+                         onChange={this.handleSessionChange}
+                         required />
+                </FormGroup>
+              </CardBody>
+            </Collapse>
+          </Card>
+            <Button color='success' className="startButton" size="lg"
+                    block>Start</Button>
         </Form>
       </div>
     );
