@@ -40,7 +40,7 @@ body {
 .app {
 }
 
-.expInfoForm {
+.exp-info-form {
   width: 70%;
   min-width: 300px;
   max-width: 450px;
@@ -48,31 +48,31 @@ body {
   text-align: left;
 }
 
-.trialPlot {
+.trial-plot {
   width: 100%;
 }
 
-.abortButton {
+.abort-button {
   text-align: left;
 }
 
-.participantInfoCard,
-.experimentSettingsCard {
+.participant-info-card,
+.exp-settings-card {
   margin: 2em 0 0 0;
 }
 
-.startButton {
+.start-button {
   margin: 1em 0 0 0;
 }
 
-.participantInfoCard .card-header,
-.experimentSettingsCard .card-header {
+.participant-info-card .card-header,
+.exp-settings-card .card-header {
   text-align: center;
   font-weight: bold;
   cursor: pointer;
 }
 
-.tooltipElement {
+.tooltip-element {
   display: inline-block;
   margin: 0 0 0 0.75em;
   width: 1.5em;
@@ -84,6 +84,6 @@ body {
   text-align: center;
 }
 
-.tooltipElement:before {
+.tooltip-element:before {
   content: '?';
 }

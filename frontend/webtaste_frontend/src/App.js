@@ -140,10 +140,12 @@ class App extends Component {
 
   renderMainView = () => {
     if (!this.state.staircaseStarted) {
-      return <div className='expInfo'>
-        <Startup startStaircase={this.startStaircase}
-                 dateSetter={this.setDate}/>
-      </div>
+      return (
+          <div className="exp-info">
+            <Startup startStaircase={this.startStaircase}
+                     dateSetter={this.setDate}/>
+          </div>
+      )
     } else {
       return <div className='experiment'>{this.renderExperiment()}</div>
     }
@@ -152,7 +154,7 @@ class App extends Component {
 
   render() {
     return (
-      <div className="App">
+      <div className="app">
         <h2>Threshold Estimation</h2>
         {this.renderMainView()}
       </div>

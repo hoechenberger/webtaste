@@ -12,7 +12,7 @@ class Tooltip extends Component {
     const msg = this.props.text;
 
     return (
-      <div className="tooltipElement" id={id}>
+      <div className="tooltip-element" id={id}>
         <UncontrolledTooltip placement="right" target={id}>
           {msg}
         </UncontrolledTooltip>
@@ -219,8 +219,8 @@ class Startup extends Component {
   render () {
     return (
       <div>
-        <Form onSubmit={this.handleSubmit} className='expInfoForm'>
-          <Card className="participantInfoCard">
+        <Form onSubmit={this.handleSubmit} className='exp-info-form'>
+          <Card className="participant-info-card">
             <CardHeader onClick={this.toggleParticipantInfoCard}>
                 Participant Info
             </CardHeader>
@@ -232,7 +232,7 @@ class Startup extends Component {
                     <Tooltip text={"A unique, anonymous participant identifier " +
                                    "that cannot be used to immediately identify a " +
                                    "participant."}
-                             id="tooltip-participant-id"/>
+                             id="tooltip-participant"/>
                   </Label>
                   <Input name="participant" id="participant"
                          placeholder="e.g. 123"
@@ -273,7 +273,7 @@ class Startup extends Component {
             </Collapse>
           </Card>
 
-          <Card className="experimentSettingsCard">
+          <Card className="exp-settings-card">
             <CardHeader onClick={this.toggleExperimentSettingsCard}>
                 Experiment Settings
             </CardHeader>
@@ -362,7 +362,7 @@ class Startup extends Component {
               </CardBody>
             </Collapse>
           </Card>
-            <Button color='success' className="startButton" size="lg"
+            <Button color='success' className="start-button" size="lg"
                     block>Start</Button>
         </Form>
       </div>
