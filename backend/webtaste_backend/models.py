@@ -11,9 +11,13 @@ quest_handler = api.model('QuestHandler', {
 })
 
 
-quest_update = api.model('Quest Update', {
+response_update = api.model('Response Update', {
     # 'questHandler': fields.Raw(description='QuestHandler Object',
     #                            required=True),
+    'modality': fields.String(description='Modality', required=True,
+                              enum=['gustation', 'olfaction']),
+    'algorithm': fields.String(description='Algorithm', required=True,
+                               enum=['QUEST', 'Hummel']),
     'concentration': fields.Float(description='Intensity', required=True),
     'responseCorrect': fields.Boolean(description='Response Correct',
                                       required=True),
@@ -28,12 +32,19 @@ exp_info = api.model('Experiment Info', {
     'gender': fields.String(description='Gender', required=True,
                             enum=['undisclosed / other', 'male',
                                   'female']),
+    'modality': fields.String(description='Modality', required=True,
+                              enum=['gustation', 'olfaction']),
+
+    'algorithm': fields.String(description='Algorithm', required=True,
+                               enum=['QUEST', 'Hummel']),
     'substance': fields.String(description='Substance', required=True,
                                enum=SUBSTANCES),
     'lateralization': fields.String(description='Lateralization',
                                     required=True,
                                     enum=['left side', 'right side',
                                           'both sides']),
+    'startVal': fields.String(description='Starting concentration',
+                              enum=['15', '16', '']),
     'session': fields.String(description='Session',
                              required=True),
     'date': fields.String(description='Date', required=True)})

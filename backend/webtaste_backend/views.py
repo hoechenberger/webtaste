@@ -16,134 +16,140 @@ from .constants import CONCENTRATION_STEPS
 from .utils import find_nearest, get_start_val, get_jar_index
 
 
-@api.route('/api')
+@api.route('/api/')
 class Api(Resource):
     def get(self):
         endpoints = {
-            '/api/measurement': 'Run a measurement.'
+            'links': {
+                'measurements': '/api/measurements/',
+                'reports': '/api/reports/'
+            }
         }
 
         return endpoints
 
 
-@api.route('/api/measurement')
-class MeasurementApi(Resource):
+# @api.route('/api/measurements/')
+# class MeasurementApi(Resource):
+#     def get(self):
+#         endpoints = {
+#             '/api/measurements/new': 'Start a new measurement.'
+#         }
+#
+#         return endpoints
+
+
+@api.route('/api/measurements/')
+class MeasurementNewApi(Resource):
     def get(self):
-        endpoints = {
-            '/api/measurement/gustatory': 'A measurement of the gustatory '
-                                          'modality.',
-            '/api/measurement/olfactory': 'A measurement of the olfactory '
-                                          'modality.'
-        }
+        return models.exp_info
 
-        return endpoints
-
-
-@api.route('/api/measurement/gustatory')
-class GustatoryMeasurementApi(Resource):
-    def get(self):
-        endpoints = {
-            'quest': 'Use the QUEST algorithm.',
-            'quest+': 'Use the QUEST+ algorithm.'
-        }
-
-        return endpoints
-
-
-@api.route('/quest')
-class Quest(Resource):
     @api.expect(models.exp_info)
     def post(self):
+        """Create new staircase.
+        """
         payload = request.json
         models.exp_info.validate(payload)
 
-        substance = payload['substance']
+        participant = payload['participant']
         age = payload['age']
         gender = payload['gender']
-        session = payload['session']
+        modality = payload['modality']
+        algorithm = payload['algorithm']
+        substance = payload['substance']
         lateralization = payload['lateralization']
-        participant = payload['participant']
+        session = payload['session']
+        start_val = payload.get('startVal', None)
         date = payload['date']
 
-        q = _init_quest(participant, age, gender, session, substance,
-                        lateralization, date)
-        q.originPath = ''
+        print(payload)
 
-        # Find the intensity / concentration we have actually prepared.
-        concentration_steps = CONCENTRATION_STEPS[substance]
-        proposed_concentration = q.__next__()
+        if modality == 'gustation':
+            if 'algorithm' == 'QUEST':
+                q = _init_quest_gustation(participant, age, gender, session,
+                                          substance, lateralization, date)
+                q.originPath = ''
 
-        concentration = find_nearest(concentration_steps,
-                                     proposed_concentration)
+                # Find the intensity / concentration we have actually prepared.
+                concentration_steps = CONCENTRATION_STEPS[substance]
+                proposed_concentration = q.__next__()
 
-        jar = int(get_jar_index(concentration_steps, concentration) + 1)
+                concentration = find_nearest(concentration_steps,
+                                             proposed_concentration)
 
-        q.addOtherData('Concentration', concentration)
-        q.addOtherData('Jar', jar)
+                jar = int(get_jar_index(concentration_steps, concentration)
+                          + 1)
 
-        data = json_tricks.dumps(dict(trial=q.thisTrialN + 1,
-                                      concentration=concentration,
-                                      jar=jar,
-                                      questHandler=q,
-                                      finished=False))
+                q.addOtherData('Concentration', concentration)
+                q.addOtherData('Jar', jar)
 
-        print(data)
-        r = Response(data, mimetype='application/json')
-        return r
+                data = json_tricks.dumps(dict(trial=q.thisTrialN + 1,
+                                              concentration=concentration,
+                                              jar=jar,
+                                              questHandler=q,
+                                              finished=False))
 
+                print(data)
+                r = Response(data, mimetype='application/json')
+                return r
 
-@api.route('/quest/update')
-class QuestUpdate(Resource):
-    @api.expect(models.quest_update)
-    def post(self):
+    @api.expect(models.response_update)
+    def patch(self):
+        """Update existing staircase.
+        """
         payload = json_tricks.loads(request.get_data(as_text=True))
-        models.quest_update.validate(payload)
+        models.response_update.validate(payload)
 
+        modality = payload['modality']
+        algorithm = payload['algorithm']
         comment = payload['comment']
         concentration = payload['concentration']
         response_correct = 1 if payload['responseCorrect'] is True else 0
-        q = payload['questHandler']
-        substance = q.extraInfo['Substance']
 
-        q.addResponse(response_correct, intensity=concentration)
-        if comment:
-            q.addOtherData('Comment', comment)
+        if modality == 'gustation':
+            if algorithm == 'QUEST':
+                q = payload['questHandler']
+                substance = q.extraInfo['Substance']
 
-        try:
-            quest_proposed_concentration = q.__next__()
-            finished = False
-        except StopIteration:
-            finished = True
+                q.addResponse(response_correct, intensity=concentration)
+                if comment:
+                    q.addOtherData('Comment', comment)
 
-        if not finished:
-            next_concentration, next_jar = _get_next_quest_concentration(
-                quest_proposed_concentration=quest_proposed_concentration,
-                previous_concentration=concentration,
-                previous_response_correct=response_correct,
-                substance=substance)
+                try:
+                    quest_proposed_concentration = q.__next__()
+                    finished = False
+                except StopIteration:
+                    finished = True
 
-            # Data for the next trial.
-            q.addOtherData('Concentration', next_concentration)
-            q.addOtherData('Jar', next_jar)
+                if not finished:
+                    next_concentration, next_jar = _get_next_quest_concentration_gustation(
+                        quest_proposed_concentration=quest_proposed_concentration,
+                        previous_concentration=concentration,
+                        previous_response_correct=response_correct,
+                        substance=substance)
 
-            trial = q.thisTrialN + 1
-        else:
-            trial = None
-            next_concentration = None
-            next_jar = None
+                    # Data for the next trial.
+                    q.addOtherData('Concentration', next_concentration)
+                    q.addOtherData('Jar', next_jar)
 
-        data = json_tricks.dumps(dict(trial=trial,
-                                      concentration=next_concentration,
-                                      jar=next_jar,
-                                      questHandler=q,
-                                      finished=finished,
-                                      threshold=round(q.mean(), 3)))
+                    trial = q.thisTrialN + 1
+                else:
+                    trial = None
+                    next_concentration = None
+                    next_jar = None
 
-        r = Response(data, mimetype='application/json')
-        return r
+                data = json_tricks.dumps(dict(trial=trial,
+                                              concentration=next_concentration,
+                                              jar=next_jar,
+                                              questHandler=q,
+                                              finished=finished,
+                                              threshold=round(q.mean(), 3)))
+
+                r = Response(data, mimetype='application/json')
+                return r
 
 
-def _gen_quest_report(quest_handler):
+def _gen_quest_report_gustation(quest_handler):
     q = quest_handler
     responses = q.data
 
@@ -198,14 +204,15 @@ def _gen_quest_report(quest_handler):
     filename_csv = filename_base + '.csv'
     return filename_csv, f
 
-@api.route('/quest/report')
+
+@api.route('/api/reports/')
 class QuestReport(Resource):
     @api.expect(models.quest_handler)
     def post(self):
         payload = json_tricks.loads(request.get_data(as_text=True))
         models.quest_handler.validate(payload)
 
-        filename_csv, f = _gen_quest_report(payload['questHandler'])
+        filename_csv, f = _gen_quest_report_gustation(payload['questHandler'])
 
         print(filename_csv)
         r = Response(
@@ -217,13 +224,17 @@ class QuestReport(Resource):
         return r
 
 
-def _init_quest(participant, age, gender, session, substance,
-                lateralization, date):
+def _init_quest_gustation(participant, age, gender, session, substance,
+                          lateralization, date):
+    start_val = get_start_val(substance)
+
     exp_info = dict(Participant=participant,
                     Age=age, Gender=gender,
+                    Modality='Gustatory',
                     Substance=substance, Lateralization=lateralization,
+                    Start_Val=start_val,
                     Session=session, Date=date)
-    start_val = get_start_val(substance)
+
     sd = np.log10(20)
     max_trials = 20
     concentration_steps = CONCENTRATION_STEPS[substance]
@@ -240,8 +251,10 @@ def _init_quest(participant, age, gender, session, substance,
     return q
 
 
-def _get_next_quest_concentration(quest_proposed_concentration, previous_concentration,
-    previous_response_correct, substance):
+def _get_next_quest_concentration_gustation(quest_proposed_concentration,
+                                            previous_concentration,
+                                            previous_response_correct,
+                                            substance):
     # Find the intensity / concentration we have actually prepared
     concentration_steps = CONCENTRATION_STEPS[substance]
     next_concentration = find_nearest(concentration_steps,

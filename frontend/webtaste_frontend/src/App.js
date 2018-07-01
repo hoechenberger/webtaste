@@ -34,21 +34,13 @@ class App extends Component {
 
 
   _initQuestFromApi = async (expInfo) => {
-    const response = await fetch('/quest', {
+    const response = await fetch('/api/measurements/', {
       method: 'post',
       headers: {
         'Accept': 'application/json, text/plain, */*',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        participant: expInfo.participant,
-        age: expInfo.age,
-        gender: expInfo.gender,
-        substance: expInfo.substance,
-        lateralization: expInfo.lateralization,
-        session: expInfo.session,
-        date: expInfo.date
-      })
+      body: JSON.stringify(expInfo)
     });
 
     return await response.json();
@@ -62,8 +54,8 @@ class App extends Component {
       comment: ''
     };
 
-    const response = await fetch('/quest/update', {
-      method: 'post',
+    const response = await fetch('/api/measurements/', {
+      method: 'patch',
       headers: {
         'Accept': 'application/json, text/plain, */*',
         'Content-Type': 'application/json'

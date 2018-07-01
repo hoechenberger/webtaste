@@ -93,9 +93,8 @@ class Startup extends Component {
     date: null
   };
 
-  // componentDidMount = () => this.restoreStateFromLocalStorage();
+  componentDidMount = () => this.restoreStateFromLocalStorage();
 
-  // https://hackernoon.com/how-to-take-advantage-of-local-storage-in-your-react-projects-a895f2b2d3f2
   restoreStateFromLocalStorage = () => {
     // for all items in state
     for (let key in this.state) {
