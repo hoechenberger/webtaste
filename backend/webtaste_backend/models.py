@@ -15,7 +15,7 @@ response_update = api.model('Response Update', {
     # 'questHandler': fields.Raw(description='QuestHandler Object',
     #                            required=True),
     'modality': fields.String(description='Modality', required=True,
-                              enum=['gustation', 'olfaction']),
+                              enum=['gustatory', 'olfactory']),
     'algorithm': fields.String(description='Algorithm', required=True,
                                enum=['QUEST', 'Hummel']),
     'concentration': fields.Float(description='Intensity', required=True),

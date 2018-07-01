@@ -64,9 +64,9 @@ class MeasurementNewApi(Resource):
 
         print(payload)
 
-        if modality == 'gustation':
+        if modality == 'gustatory':
             if 'algorithm' == 'QUEST':
-                q = _init_quest_gustation(participant, age, gender, session,
+                q = _init_quest_gustatory(participant, age, gender, session,
                                           substance, lateralization, date)
                 q.originPath = ''
 
@@ -93,6 +93,12 @@ class MeasurementNewApi(Resource):
                 r = Response(data, mimetype='application/json')
                 return r
 
+        elif modality == 'olfactory':
+            if algorithm == 'QUEST':
+                pass
+            if algorithm == 'Hummel':
+                pass
+
     @api.expect(models.response_update)
     def patch(self):
         """Update existing staircase.
@@ -106,7 +112,7 @@ class MeasurementNewApi(Resource):
         concentration = payload['concentration']
         response_correct = 1 if payload['responseCorrect'] is True else 0
 
-        if modality == 'gustation':
+        if modality == 'gustatory':
             if algorithm == 'QUEST':
                 q = payload['questHandler']
                 substance = q.extraInfo['Substance']
@@ -122,7 +128,7 @@ class MeasurementNewApi(Resource):
                     finished = True
 
                 if not finished:
-                    next_concentration, next_jar = _get_next_quest_concentration_gustation(
+                    next_concentration, next_jar = _get_next_quest_concentration_gustatory(
                         quest_proposed_concentration=quest_proposed_concentration,
                         previous_concentration=concentration,
                         previous_response_correct=response_correct,
@@ -148,6 +154,12 @@ class MeasurementNewApi(Resource):
                 r = Response(data, mimetype='application/json')
                 return r
 
+        elif modality == 'olfactory':
+            if algorithm == 'QUEST':
+                pass
+            if algorithm == 'Hummel':
+                pass
+
 
 def _gen_quest_report_gustation(quest_handler):
     q = quest_handler
@@ -163,7 +175,7 @@ def _gen_quest_report_gustation(quest_handler):
     lateralization = q.extraInfo['Lateralization']
     session = q.extraInfo['Session']
     trials = list(range(1, len(responses) + 1))
-    modality = 'gustation'
+    modality = 'gustatory'
     method = 'QUEST'
     comments = q.otherData.get('Comment', '')
 
@@ -224,7 +236,7 @@ class QuestReport(Resource):
         return r
 
 
-def _init_quest_gustation(participant, age, gender, session, substance,
+def _init_quest_gustatory(participant, age, gender, session, substance,
                           lateralization, date):
     start_val = get_start_val(substance)
 
@@ -251,7 +263,7 @@ def _init_quest_gustation(participant, age, gender, session, substance,
     return q
 
 
-def _get_next_quest_concentration_gustation(quest_proposed_concentration,
+def _get_next_quest_concentration_gustatory(quest_proposed_concentration,
                                             previous_concentration,
                                             previous_response_correct,
                                             substance):

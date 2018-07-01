@@ -270,8 +270,8 @@ class Startup extends Component {
                          onChange={this.handleModalityChange}
                          required>
                     <option disabled value="" hidden>– select –</option>
-                    <option>gustation</option>
-                    <option>olfaction</option>
+                    <option>gustatory</option>
+                    <option>olfactory</option>
                   </Input>
                 </FormGroup>
                 <FormGroup>
