@@ -3,17 +3,17 @@
 import json_tricks
 from datetime import datetime
 from io import StringIO
-from flask import request, abort, Response
-from flask_restplus import Resource
+from flask import request, abort
+from flask_restplus import Resource, marshal
 from psychopy.data import QuestHandler
 
 import numpy as np
 import pandas as pd
 
-from .app import api
+from .app import api, db
 from . import models
-from .constants import CONCENTRATION_STEPS
-from .utils import find_nearest, get_start_val, get_jar_index
+from .utils import (find_nearest, get_start_val, get_sample_number,
+                    gen_concentration_steps)
 
 
 @api.route('/api/')
@@ -22,143 +22,432 @@ class Api(Resource):
         endpoints = {
             'links': {
                 'measurements': '/api/measurements/',
-                'reports': '/api/reports/'
             }
         }
 
         return endpoints
 
 
-# @api.route('/api/measurements/')
-# class MeasurementApi(Resource):
-#     def get(self):
-#         endpoints = {
-#             '/api/measurements/new': 'Start a new measurement.'
-#         }
-#
-#         return endpoints
-
-
 @api.route('/api/measurements/')
-class MeasurementNewApi(Resource):
+class MeasurementWithoutIdApi(Resource):
     def get(self):
-        return models.exp_info
+        """Retrieve an array of running staircases.
+        """
+        measurements = models.Measurement.query.all()
+        data = marshal(measurements, fields=models.measurement)
 
-    @api.expect(models.exp_info)
+        for measurement in data:
+            measurement_id = measurement['id']
+
+            measurement['links'] = {
+                'measurements': f'/api/measurements/',
+                'trials': f'/api/measurements/{measurement_id}/trials/',
+                'self': f'/api/measurements/{measurement_id}'
+            }
+
+        data = {
+            'data': data,
+            'links': {'self': f'/api/measurements/'}
+        }
+
+        return data
+
+    @api.expect(models.measurement_metadata)
+    @api.doc(responses={201: 'Created'})
     def post(self):
         """Create new staircase.
         """
+        print('Creating new staircase …')
         payload = request.json
-        models.exp_info.validate(payload)
 
-        participant = payload['participant']
-        age = payload['age']
-        gender = payload['gender']
-        modality = payload['modality']
-        algorithm = payload['algorithm']
-        substance = payload['substance']
-        lateralization = payload['lateralization']
-        session = payload['session']
-        start_val = payload.get('startVal', None)
-        date = payload['date']
+        # # Our schema says we expect an integer, but we would also like to
+        # # accept a "null" value here, which is currently not supported in
+        # # Swagger / flask-restplus, so we have to hack around this.
+        # if payload['startVal'] is None:
+        #     del payload['startVal']
+        #     models.measurement_metadata.validate(payload)
+        #     payload['startVal'] = None
+        # else:
+        #     models.measurement_metadata.validate(payload)
+        #
+        # # Only use the data we know we want to handle, and skip values that
+        # # were no sent (they are optional anyway: we have already validated
+        # # the payload!)
+        # # The skipping of optional values currently should only apply to
+        # # `startVal`.
+        models.measurement_metadata.validate(payload)
 
-        print(payload)
+        metadata = dict()
+        for k in models.measurement_metadata.keys():
+            try:
+                metadata[k] = payload[k]
+            except KeyError:
+                assert k == 'startVal'
+                metadata['startVal'] = None
 
-        if modality == 'gustatory':
-            if 'algorithm' == 'QUEST':
-                q = _init_quest_gustatory(participant, age, gender, session,
-                                          substance, lateralization, date)
-                q.originPath = ''
-
-                # Find the intensity / concentration we have actually prepared.
-                concentration_steps = CONCENTRATION_STEPS[substance]
-                proposed_concentration = q.__next__()
-
-                concentration = find_nearest(concentration_steps,
-                                             proposed_concentration)
-
-                jar = int(get_jar_index(concentration_steps, concentration)
-                          + 1)
-
-                q.addOtherData('Concentration', concentration)
-                q.addOtherData('Jar', jar)
-
-                data = json_tricks.dumps(dict(trial=q.thisTrialN + 1,
-                                              concentration=concentration,
-                                              jar=jar,
-                                              questHandler=q,
-                                              finished=False))
-
-                print(data)
-                r = Response(data, mimetype='application/json')
-                return r
-
-        elif modality == 'olfactory':
-            if algorithm == 'QUEST':
+        if metadata['modality'] == 'gustatory':
+            if metadata['algorithm'] == 'QUEST':
+                staircase_handler = _init_quest_gustatory(metadata)
+        elif metadata['modality'] == 'olfactory':
+            if metadata['algorithm'] == 'QUEST':
                 pass
-            if algorithm == 'Hummel':
+            elif metadata['algorithm'] == 'Hummel':
                 pass
 
-    @api.expect(models.response_update)
-    def patch(self):
-        """Update existing staircase.
+        staircase_handler.originPath = ''
+
+        measurement = models.Measurement()
+        metadata_ = models.MeasurementMetadata(**metadata)
+        metadata_.measurement = measurement
+
+        staircase_handler = models.StaircaseHandler(
+            staircaseHandler=json_tricks.dumps(staircase_handler))
+        staircase_handler.measurement = measurement
+
+        db.session.add_all([measurement, metadata_,
+                            staircase_handler])
+        db.session.commit()
+
+        measurement_id = measurement.id
+        data = marshal(models.Measurement
+                       .query
+                       .order_by('-id')
+                       .first(),
+                       fields=models.measurement)
+
+        data['links'] = {
+            'measurements': f'/api/measurements/',
+            'trials': f'/api/measurements/{measurement_id}/trials/',
+            'self': f'/api/measurements/{measurement_id}'
+        }
+
+        response = {'data': data}
+        return response, 201, {'Location': data['links']['self']}
+
+
+@api.route('/api/measurements/<int:measurement_id>')
+class MeasurementWithIdApi(Resource):
+    @api.doc(responses={200: 'Success',
+                        404: 'Resource not found'})
+    def get(self, measurement_id):
+        """Retrieve information about a running staircase.
         """
-        payload = json_tricks.loads(request.get_data(as_text=True))
-        models.response_update.validate(payload)
+        mask = models.Measurement.id == measurement_id
+        measurement = (models.Measurement
+                       .query
+                       .filter(mask)
+                       .first())
 
-        modality = payload['modality']
-        algorithm = payload['algorithm']
-        comment = payload['comment']
-        concentration = payload['concentration']
-        response_correct = 1 if payload['responseCorrect'] is True else 0
+        if measurement is None:
+            abort(404)
+        else:
+            data = marshal(measurement, models.measurement)
+            data['links'] = {
+                'measurements': f'/api/measurements/',
+                'trials': f'/api/measurements/{measurement_id}/trials/',
+                'self': f'/api/measurements/{measurement_id}/'
+            }
 
-        if modality == 'gustatory':
-            if algorithm == 'QUEST':
-                q = payload['questHandler']
-                substance = q.extraInfo['Substance']
+            response = {'data': data}
+            return response
 
-                q.addResponse(response_correct, intensity=concentration)
-                if comment:
-                    q.addOtherData('Comment', comment)
+    @api.doc(responses={200: 'Success',
+                        404: 'Resource not found'})
+    def delete(self, measurement_id):
+        """Delete a running staircase.
+        """
+        mask = models.Measurement.id == measurement_id
+        measurement = (models.Measurement
+                       .query
+                       .filter(mask)
+                       .first())
 
-                try:
-                    quest_proposed_concentration = q.__next__()
-                    finished = False
-                except StopIteration:
-                    finished = True
+        if measurement is None:
+            abort(404)
+        else:
+            db.session.delete(measurement)
+            db.session.commit()
+            return {}
 
-                if not finished:
-                    next_concentration, next_jar = _get_next_quest_concentration_gustatory(
-                        quest_proposed_concentration=quest_proposed_concentration,
-                        previous_concentration=concentration,
-                        previous_response_correct=response_correct,
-                        substance=substance)
+    # @api.expect(models.response_update)
+    # def patch(self, measurement_id):
+    #     """Update existing staircase.
+    #     """
+    #
+    #     measurements[measurement_id].append('X')
+    #     return measurements[measurement_id]
+        # print(measurement_id)
+        # payload = json_tricks.loads(request.get_data(as_text=True))
+        # models.response_update.validate(payload)
+        #
+        # modality = payload['modality']
+        # algorithm = payload['algorithm']
+        # comment = payload['comment']
+        # concentration = payload['concentration']
+        # response_correct = 1 if payload['responseCorrect'] is True else 0
+        #
+        # if modality == 'gustatory':
+        #     if algorithm == 'QUEST':
+        #         q = payload['staircaseHandler']
+        #         substance = q.extraInfo['Substance']
+        #
+        #         q.addResponse(response_correct, intensity=concentration)
+        #         if comment:
+        #             q.addOtherData('Comment', comment)
+        #
+        #         try:
+        #             quest_proposed_concentration = q.__next__()
+        #             finished = False
+        #         except StopIteration:
+        #             finished = True
+        #
+        #         if not finished:
+        #             next_concentration, next_jar = _get_next_quest_concentration_gustatory(
+        #                 quest_proposed_concentration=quest_proposed_concentration,
+        #                 previous_concentration=concentration,
+        #                 previous_response_correct=response_correct,
+        #                 substance=substance)
+        #
+        #             # Data for the next trial.
+        #             q.addOtherData('Concentration', next_concentration)
+        #             q.addOtherData('Jar', next_jar)
+        #
+        #             trial = q.thisTrialN + 1
+        #         else:
+        #             trial = None
+        #             next_concentration = None
+        #             next_jar = None
+        #
+        #         data = json_tricks.dumps(dict(trial=trial,
+        #                                       concentration=next_concentration,
+        #                                       jar=next_jar,
+        #                                       questHandler=q,
+        #                                       finished=finished,
+        #                                       threshold=round(q.mean(), 3)))
+        #
+        #         r = Response(data, mimetype='application/json')
+        #         return r
+        #
+        # elif modality == 'olfactory':
+        #     if algorithm == 'QUEST':
+        #         pass
+        #     if algorithm == 'Hummel':
+        #         pass
 
-                    # Data for the next trial.
-                    q.addOtherData('Concentration', next_concentration)
-                    q.addOtherData('Jar', next_jar)
 
-                    trial = q.thisTrialN + 1
-                else:
-                    trial = None
-                    next_concentration = None
-                    next_jar = None
+# def _create_trial():
+#     return
 
-                data = json_tricks.dumps(dict(trial=trial,
-                                              concentration=next_concentration,
-                                              jar=next_jar,
-                                              questHandler=q,
-                                              finished=finished,
-                                              threshold=round(q.mean(), 3)))
+@api.route('/api/measurements/<int:measurement_id>/trials/')
+class TrialsWithoutNumber(Resource):
+    @api.doc(responses={200: 'Success',
+                        404: 'Resource not found'})
+    def get(self, measurement_id):
+        """Retrieve all trials in a measurement.
+        """
+        mask = models.Measurement.id == measurement_id
+        measurement = (models.Measurement
+                       .query
+                       .filter(mask)
+                       .first())
 
-                r = Response(data, mimetype='application/json')
-                return r
+        if measurement is None:
+            abort(404)
+        else:
+            mask = models.Trial.measurementId == measurement_id
+            trials = (models.Trial
+                      .query
+                      .filter(mask)
+                      .all())
 
-        elif modality == 'olfactory':
-            if algorithm == 'QUEST':
-                pass
-            if algorithm == 'Hummel':
-                pass
+            data = marshal(trials, models.trial_server_response)
+
+            for trial in data:
+                trial_number = trial['trialNumber']
+
+                trial['links'] = {
+                    'measurement': f'/api/measurements/{measurement_id}',
+                    'measurements': f'/api/measurements/',
+                    'trials': f'/api/measurements/{measurement_id}/trials/',
+                    'self': f'/api/measurements/{measurement_id}/{trial_number}'
+                }
+
+            response = {
+                'data': {
+                    'trials': data,
+                    'links': {
+                        'measurement': f'/api/measurements/{measurement_id}',
+                        'measurements': f'/api/measurements/',
+                        'self': f'/api/measurements/{measurement_id}/trials/'
+                    }
+                }
+            }
+
+            return response
+
+    @api.expect(models.trial_new)
+    @api.doc(responses={201: 'Created',
+                        404: 'Resource not found'})
+    def post(self, measurement_id):
+        """Create a new trial.
+        """
+        mask = models.Measurement.id == measurement_id
+        measurement = (models.Measurement
+                       .query
+                       .filter(mask)
+                       .first())
+
+        if measurement is None:
+            abort(404)
+
+        previous_trial = measurement.trials[-1]
+        staircase_handler = measurement.staircaseHandler
+
+        modality = measurement.metadata_.modality
+        substance = measurement.metadata_.substance
+        staircase_handler_ = json_tricks.loads(staircase_handler.staircaseHandler)
+
+        if not previous_trial:
+            trial_number = 1
+        else:
+            trial_number = previous_trial.trialNumber + 1
+
+        # Find the intensity / concentration we have actually prepared.
+        concentration_steps = gen_concentration_steps(modality)[substance]
+        proposed_concentration = staircase_handler_.__next__()
+
+        concentration = find_nearest(concentration_steps,
+                                     proposed_concentration)
+
+        sample_number = get_sample_number(concentration_steps, concentration)
+
+        trial = models.Trial(trialNumber=trial_number,
+                             concentration=concentration,
+                             sampleNumber=sample_number)
+        trial.measurement = measurement
+
+        staircase_handler_.addOtherData('Concentration', concentration)
+        staircase_handler_.addOtherData('Sample_Number', sample_number)
+
+        staircase_handler.staircaseHandler = json_tricks.dumps(staircase_handler_)
+        measurement.currentTrialNumber = trial_number
+
+        db.session.add_all([measurement, trial, staircase_handler])
+        db.session.commit()
+
+        data = marshal(trial, models.trial_server_response)
+        data['links'] = {
+            'measurements': f'/api/measurements/',
+            'measurement': f'/api/measurements/{measurement_id}/',
+            'trials': f'/api/measurements/{measurement_id}/trials/',
+            'self': f'/api/measurements/{measurement_id}/trials/{trial_number}'
+        }
+
+        response = {'data': data}
+        return response, 201, {'Location': data['links']['self']}
+
+
+@api.route('/api/measurements/'
+           '<int:measurement_id>/trials/<int:trial_number>')
+class TrialsWithNumber(Resource):
+    @api.doc(responses={200: 'Success',
+                        404: 'Resource not found'})
+    def get(self, measurement_id, trial_number):
+        """Retrieve a specific trial.
+        """
+        trial = (models.Trial
+                 .query
+                 .filter((models.Trial.measurementId == measurement_id) &
+                         (models.Trial.trialNumber == trial_number))
+                 .first())
+
+        if trial is None:
+            abort(404)
+        else:
+            data = marshal(trial, models.trial_server_response)
+
+            data['links'] = {
+                'measurements': f'/api/measurements/',
+                'measurement': f'/api/measurements/{measurement_id}/',
+                'trials': f'/api/measurements/{measurement_id}/trials/',
+                'self': f'/api/measurements/{measurement_id}/trials/{trial_number}'
+            }
+
+            response = {'data': data}
+            return response
+
+    @api.expect(models.trial_participant_response)
+    @api.doc(responses={200: 'Success',
+                        405: 'Method Not Allowed',
+                        404: 'Resource not found'})
+    def put(self, measurement_id, trial_number):
+        """Add a response.
+        """
+        payload = request.json
+        models.trial_participant_response.validate(payload)
+
+        trial = (models.Trial
+                 .query
+                 .filter((models.Trial.measurementId == measurement_id) &
+                         (models.Trial.trialNumber == trial_number))
+                 .first())
+
+        if trial is None:
+            abort(404)
+        else:
+            # Only allow updating of the current trial.
+            if trial.trialNumber < trial.measurement.currentTrialNumber:
+                return {}, 405, {'Allow': 'GET'}
+
+            trial.responseCorrect = payload['responseCorrect']
+            trial.response = payload['response']
+
+            db.session.add(trial)
+            db.session.commit()
+
+            data = marshal(trial, models.trial_server_response)
+
+            data['links'] = {
+                'measurements': f'/api/measurements/',
+                'measurement': f'/api/measurements/{measurement_id}/',
+                'trials': f'/api/measurements/{measurement_id}/trials/',
+                'self': f'/api/measurements/{measurement_id}/trials/{trial_number}'
+            }
+
+            response = {'data': data}
+            return response
+
+
+@api.route('/api/measurements/'
+           '<int:measurement_id>/trials/current')
+class TrialsWithNumber(Resource):
+    @api.doc(responses={200: 'Success',
+                        404: 'Resource not found'})
+    def get(self, measurement_id):
+        """Retrieve the current trial.
+        """
+        current_trial = (models.Trial
+                         .query
+                         .filter(models.Trial.measurementId == measurement_id)
+                         .order_by('-id')
+                         .first())
+
+        if not current_trial:
+            abort(404)
+        else:
+            trial_number = current_trial['trialNumber']
+            data = marshal(current_trial, models.trial_server_response)
+
+            data['links'] = {
+                'measurements': f'/api/measurements/',
+                'measurement': f'/api/measurements/{measurement_id}/',
+                'trials': f'/api/measurements/{measurement_id}/trials/',
+                'self': f'/api/measurements/{measurement_id}/trials/'
+                        f'{trial_number}'
+            }
+
+            response = {'data': data}
+            return response
 
 
 def _gen_quest_report_gustation(quest_handler):
@@ -217,39 +506,36 @@ def _gen_quest_report_gustation(quest_handler):
     return filename_csv, f
 
 
-@api.route('/api/reports/')
-class QuestReport(Resource):
-    @api.expect(models.quest_handler)
-    def post(self):
-        payload = json_tricks.loads(request.get_data(as_text=True))
-        models.quest_handler.validate(payload)
+# @api.route('/api/measurements/<int:measurement_id>/reports')
+# class QuestReport(Resource):
+#     @api.expect(models.quest_handler)
+#     def get(self, measurement_id):
+#         """Retrieve reports and logfiles of an experimental run.
+#         """
+#         payload = json_tricks.loads(request.get_data(as_text=True))
+#         models.quest_handler.validate(payload)
+#
+#         filename_csv, f = _gen_quest_report_gustation(payload['staircaseHandler'])
+#
+#         print(filename_csv)
+#         r = Response(
+#             f,
+#             mimetype='text/csv',
+#             headers={'Content-Disposition': f'attachment; '
+#                                             f'filename={filename_csv}'})
+#
+#         return r
+#
 
-        filename_csv, f = _gen_quest_report_gustation(payload['questHandler'])
+def _init_quest_gustatory(exp_info):
+    modality = 'gustatory'
+    substance = exp_info['substance']
 
-        print(filename_csv)
-        r = Response(
-            f,
-            mimetype='text/csv',
-            headers={'Content-Disposition': f'attachment; '
-                                            f'filename={filename_csv}'})
-
-        return r
-
-
-def _init_quest_gustatory(participant, age, gender, session, substance,
-                          lateralization, date):
-    start_val = get_start_val(substance)
-
-    exp_info = dict(Participant=participant,
-                    Age=age, Gender=gender,
-                    Modality='Gustatory',
-                    Substance=substance, Lateralization=lateralization,
-                    Start_Val=start_val,
-                    Session=session, Date=date)
+    start_val = get_start_val(modality=modality, substance=substance)
 
     sd = np.log10(20)
     max_trials = 20
-    concentration_steps = CONCENTRATION_STEPS[substance]
+    concentration_steps = gen_concentration_steps(modality)[substance]
     range_ = 2 * np.abs(concentration_steps.max() - concentration_steps.min())
 
     q = QuestHandler(startVal=start_val,
@@ -274,8 +560,8 @@ def _get_next_quest_concentration_gustatory(quest_proposed_concentration,
 
     # If the concentration we selected is equal to the one previously presented ...
     if next_concentration == previous_concentration:
-        idx_previous_conc = get_jar_index(concentration_steps,
-                                          previous_concentration)
+        idx_previous_conc = get_sample_number(concentration_steps,
+                                              previous_concentration)
 
         # ... and we got a correct response ...
         if previous_response_correct:
@@ -290,7 +576,7 @@ def _get_next_quest_concentration_gustatory(quest_proposed_concentration,
                 # ... more up to a higher concentration!
                 next_concentration = concentration_steps[idx_previous_conc - 1]
 
-    next_jar = int(get_jar_index(concentration_steps,
-                                 next_concentration) + 1)
+    next_jar = int(get_sample_number(concentration_steps,
+                                     next_concentration) + 1)
 
     return next_concentration, next_jar

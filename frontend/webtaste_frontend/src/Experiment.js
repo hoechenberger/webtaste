@@ -48,10 +48,14 @@ class TrialPlot extends Component {
 
 class DownloadReportButtton extends Component {
   _getQuestReportFromApi = async (questHandler) => {
-    const payload = { questHandler: questHandler };
+    const payload = {
+      modality: this.props.modality,
+      algorithm: this.props.algorithm,
+      staircaseHandler: questHandler
+    };
 
-    const response = await fetch('/quest/report', {
-      method: 'post',
+    const response = await fetch('/api/measurements/report/', {
+      method: 'get',
       headers: {
         'Accept': 'application/json, text/plain, */*',
         'Content-Type': 'application/json'
@@ -63,7 +67,7 @@ class DownloadReportButtton extends Component {
   };
 
   handleClickDownloadReport = () => {
-    const response = this._getQuestReportFromApi(this.props.questHandler);
+    const response = this._getQuestReportFromApi(this.props.staircaseHandler);
     let filename;
 
     response
@@ -156,7 +160,10 @@ class Experiment extends Component {
 
         <strong>Measurement completed.</strong><br />
         Threshold estimate: <strong>{this.props.threshold} log<sub>10</sub> mol/L</strong><br /><br />
-        <DownloadReportButtton questHandler={this.props.questHandler}/>{' '}
+        <DownloadReportButtton
+            modality={this.props.expInfo.modality}
+            algorithm={this.props.expInfo.algorithm}
+            staircaseHandler={this.props.staircaseHandler} />{' '}
         <Button color="danger"
                 onClick={this.toggleConfirmRestartModal}>New Measurement</Button>
         {/*<ConfirmRestartModal open={this.state.showConfirmRestartModal}/>*/}

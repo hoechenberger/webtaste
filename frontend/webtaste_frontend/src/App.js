@@ -13,16 +13,20 @@ class App extends Component {
       participant: null,
       age: null,
       gender: null,
-      session: null,
+      modality: null,
+      algorithm: null,
+      substance: null,
       lateralization: null,
-      substance: null
+      startVal: null,
+      session: null,
+      date: null
     },
     trial: null,
     concentration: null,
     concentrations: null,
     jar: null,
     threshold: null,
-    questHandler: null,
+    staircaseHandler: null,
     date: null
   };
 
@@ -30,10 +34,10 @@ class App extends Component {
 
   resetState = () => this.setState(this.initialState);
 
-  componentDidMount = () => document.title = 'Threshold Estimation';
+  // componentDidMount = () => document.title = 'Threshold Estimation';
 
 
-  _initQuestFromApi = async (expInfo) => {
+  _initStaircaseFromApi = async (expInfo) => {
     const response = await fetch('/api/measurements/', {
       method: 'post',
       headers: {
@@ -43,12 +47,13 @@ class App extends Component {
       body: JSON.stringify(expInfo)
     });
 
-    return await response.json();
+    const json = await response.json();
+    return json.measurement_id;
   };
 
-  _updateQuestFromApi = async (participantResponse) => {
+  _updateStaircaseFromApi = async (participantResponse) => {
     const payload = {
-      questHandler: this.state.questHandler,
+      staircaseHandler: this.state.staircaseHandler,
       concentration: this.state.concentration,
       responseCorrect: participantResponse,
       comment: ''
@@ -74,36 +79,41 @@ class App extends Component {
   //   // this.startStaircase();
   // };
 
-  startStaircase = (expInfo) => {
-    this.setState({expInfo: expInfo},
-      () => {
-        const expInfo = this.state.expInfo;
-        const response = this._initQuestFromApi(expInfo);
-        response.then(e => {
-          this.setState({
-            trial: e.trial,
-            concentration: e.concentration,
-            concentrations: e.questHandler.attributes.otherData.Concentration,
-            jar: e.jar,
-            questHandler: e.questHandler,
-            date: e.date,
-            staircaseStarted: true});
-        });
+  startStaircase = async (expInfo) => {
+    const measurementId = await this._initStaircaseFromApi(expInfo);
+    console.log(measurementId);
 
-      })
+    // this.setState({expInfo: expInfo},
+    //   () => {
+    //     const expInfo = this.state.expInfo;
+    //     // const foo = await this._initStaircaseFromApi(expInfo);
+    //     console.log(foo)
+    //     // this._initStaircaseFromApi(expInfo).then(response => {
+    //     //   this.setState({measurement_id: response.measurement_id});
+    //     //     // trial: e.trial,
+    //     //     // concentration: e.concentration,
+    //     //     // concentrations: e.staircaseHandler.attributes.otherData.Concentration,
+    //     //     // jar: e.jar,
+    //     //     // staircaseHandler: e.staircaseHandler,
+    //     //     // date: e.date,
+    //     //     // staircaseStarted: true});
+    //     //     console.log(response.measurement_id);
+    //     // });
+    //
+    //   })
   };
 
   handleParticipantResponse = (response) => {
-    const serverResponse = this._updateQuestFromApi(response);
+    const serverResponse = this._updateStaircaseFromApi(response);
     serverResponse.then( (e) => {
       console.log(e);
       this.setState({
         trial: e.trial,
         concentration: e.concentration,
-        concentrations: e.questHandler.attributes.otherData.Concentration,
+        concentrations: e.staircaseHandler.attributes.otherData.Concentration,
         jar: e.jar,
         threshold: e.threshold,
-        questHandler: e.questHandler,
+        staircaseHandler: e.staircaseHandler,
         staircaseFinished: e.finished
       })
     })
@@ -123,7 +133,7 @@ class App extends Component {
                     threshold={this.state.threshold}
                     finished={this.state.staircaseFinished}
                     expInfo={this.state.expInfo}
-                    questHandler={this.state.questHandler}
+                    questHandler={this.state.staircaseHandler}
                     onResponse={this.handleParticipantResponse}
                     onRestart={this.resetState}/>
       </div>
