@@ -87,3 +87,8 @@ body {
 .tooltip-element:before {
   content: '?';
 }
+
+.input-label-required:after {
+  content: '*';
+  color: red;
+}

@@ -8,7 +8,7 @@ class AlgorithmInput extends Component {
   render() {
     let inputField;
 
-    if (this.props.modality === "gustation") {
+    if (this.props.modality === "gustatory") {
       inputField = (
           <Input type="select" name="algorithm" id={this.props.id}
               // Disabled if no modality has been selected so far
@@ -43,7 +43,7 @@ class AlgorithmInput extends Component {
 class SubstanceInput extends Component {
   render() {
     let inputField;
-    if (this.props.modality === "gustation") {
+    if (this.props.modality === "gustatory") {
       inputField = (
           <Input type="select" name="substance" id={this.props.id}
               // Disabled if no modality has been selected so far
@@ -90,7 +90,7 @@ class Startup extends Component {
     lateralization: "",
     startVal: "",
     session: "",
-    date: null
+    date: ""
   };
 
   componentDidMount = () => this.restoreStateFromLocalStorage();
@@ -127,7 +127,7 @@ class Startup extends Component {
   handleSubmit = (e) => {
     e.preventDefault();
 
-    const expInfo = {
+    let expInfo = {
       participant: this.state.participant,
       age: this.state.age,
       gender: this.state.gender,
@@ -135,11 +135,14 @@ class Startup extends Component {
       algorithm: this.state.algorithm,
       substance: this.state.substance,
       lateralization: this.state.lateralization,
-      startVal: this.state.startVal,
       session: this.state.session,
       // Don't forget to add the current date & time :-)
       date: new Date().toUTCString()
     };
+
+    if (this.state.startVal) {
+      expInfo.startVal = this.state.startVal;
+    }
 
     console.log(expInfo);
     this.saveStateToLocalStorage();
@@ -161,7 +164,14 @@ class Startup extends Component {
   };
 
   handleAgeChange = (e) => {
-    this.setState({age: e.target.value});
+    // Convert to integer before storing.
+    const age = e.target.value;
+
+    if (age !== "") {
+      this.setState({age: parseInt(age, 10)});
+    } else {
+      this.setState({age: age});
+    }
   };
 
   handleGenderChange = (e) => {
@@ -194,7 +204,13 @@ class Startup extends Component {
   };
 
   handleStartValChange = (e) => {
-    this.setState({startVal: e.target.value})
+    const startVal = e.target.value;
+
+    if (startVal !== "") {
+      this.setState({startVal: parseInt(startVal, 10)});
+    } else {
+      this.setState({startVal: startVal});
+    }
   };
 
 
@@ -209,13 +225,14 @@ class Startup extends Component {
             <Collapse isOpen={this.state.participantInfoCardIsOpen}>
               <CardBody>
                 <FormGroup>
-                  <Label for="participant">
+                  <Label for="participant" className="input-label-required">
                     Participant ID
-                    <Tooltip text={"A unique, anonymous participant identifier " +
-                                   "that cannot be used to immediately identify a " +
-                                   "participant."}
-                             id="tooltip-participant"/>
                   </Label>
+                  <Tooltip text={"A unique, anonymous participant identifier " +
+                  "that cannot be used to immediately identify a " +
+                  "participant."}
+                           id="tooltip-participant"/>
+
                   <Input name="participant" id="participant"
                          placeholder="e.g. 123"
                          value={this.state.participant}
@@ -224,11 +241,11 @@ class Startup extends Component {
                 </FormGroup>
 
                 <FormGroup>
-                  <Label for="age">
+                  <Label for="age" className="input-label-required">
                     Age
-                    <Tooltip text="The participant's age, in years."
-                             id="tooltip-age"/>
                   </Label>
+                  <Tooltip text="The participant's age, in years."
+                           id="tooltip-age"/>
                   <Input type="number" name="age" id="age" min="0" max="120"
                          placeholder="Age in years"
                          value={this.state.age}
@@ -237,7 +254,9 @@ class Startup extends Component {
                 </FormGroup>
 
                 <FormGroup>
-                  <Label for="gender">Gender</Label>
+                  <Label for="gender" className="input-label-required">
+                    Gender
+                  </Label>
                   <Tooltip text="The participant's gender. If unknown, select 'undisclosed / other'."
                            id="tooltip-gender"/>
                   <Input type="select" name="gender" id="gender"
@@ -262,7 +281,9 @@ class Startup extends Component {
             <Collapse isOpen={this.state.experimentSettingsCardIsOpen}>
               <CardBody>
                 <FormGroup>
-                  <Label for="modality">Modality</Label>
+                  <Label for="modality"  className="input-label-required">
+                    Modality
+                  </Label>
                   <Tooltip text="Which modality to test: gustatory (taste) or olfactory (smell)?"
                            id="tooltip-modality"/>
                   <Input type="select" name="modality" id="modality"
@@ -275,7 +296,9 @@ class Startup extends Component {
                   </Input>
                 </FormGroup>
                 <FormGroup>
-                  <Label for="algorithm">Algorithm</Label>
+                  <Label for="algorithm"  className="input-label-required">
+                    Algorithm
+                  </Label>
                   <Tooltip text="The algorithm to use. See the documentation for details."
                            id="tooltip-algorithm"/>
                   <AlgorithmInput
@@ -286,7 +309,9 @@ class Startup extends Component {
                   />
                 </FormGroup>
                 <FormGroup>
-                  <Label for="substance">Substance</Label>
+                  <Label for="substance"  className="input-label-required">
+                    Substance
+                  </Label>
                   <Tooltip text={"Which substance to test. See the documentation for an overview " +
                                  "of required dilutions."}
                            id="tooltip-substance"/>
@@ -297,6 +322,7 @@ class Startup extends Component {
                       id="substance"
                   />
                 </FormGroup>
+
                 <FormGroup>
                   <Label for="lateralization">Lateralization</Label>
                   <Tooltip text={"Whether to test on both sides (bilateral testing) or on only " +
@@ -306,13 +332,13 @@ class Startup extends Component {
                          value={this.state.lateralization}
                          onChange={this.handleLateralizationChange}
                          required>
-                    <option disabled value="" hidden>– select –</option>
+                    {/*<option disabled value="" hidden>– select –</option>*/}
                     <option>both sides</option>
                     <option>left side</option>
                     <option>right side</option>
                   </Input>
                 </FormGroup>
-                {this.state.modality === "olfaction" ? (
+                {this.state.modality === "olfactory" ? (
                         <FormGroup>
                           <Label for="startval">
                             Starting concentration
@@ -338,8 +364,8 @@ class Startup extends Component {
                   <Input name="session" id="session"
                          placeholder="e.g. Test, Retest"
                          value={this.state.session}
-                         onChange={this.handleSessionChange}
-                         required />
+                         onChange={this.handleSessionChange} />
+                         {/*required />*/}
                 </FormGroup>
               </CardBody>
             </Collapse>
