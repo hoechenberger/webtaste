@@ -66,8 +66,8 @@ trial_server_response = api.model('Trial', {
     'trialNumber': Integer(description='Trial number', required=True),
     'concentration': Float(description='The stimulus concentration to use',
                            required=True),
-    'samppleNumber': Integer(description='The number of the stimulus sample',
-                             required=True),
+    'sampleNumber': Integer(description='The number of the stimulus sample',
+                            required=True),
     'response': String(description='The given response', required=True),
     'responseCorrect': Boolean(description='Whether the participant gave the'
                                            'correct response',
@@ -123,16 +123,16 @@ class MeasurementMetadata(db.Model):
     __tablename__ = 'measurement_metadata'
 
     id = db.Column(db.Integer, primary_key=True)
-    participant = db.Column(db.String)
+    participant = db.Column(db.String(length=20))
     age = db.Column(db.Integer)
-    gender = db.Column(db.String)
-    modality = db.Column(db.String)
-    algorithm = db.Column(db.String)
-    substance = db.Column(db.String)
-    lateralization = db.Column(db.String)
+    gender = db.Column(db.String(length=30))
+    modality = db.Column(db.String(length=30))
+    algorithm = db.Column(db.String(length=100))
+    substance = db.Column(db.String(length=100))
+    lateralization = db.Column(db.String(length=30))
     startVal = db.Column(db.Float)
-    session = db.Column(db.String)
-    date = db.Column(db.String)
+    session = db.Column(db.String(length=100))
+    date = db.Column(db.String(length=100))
 
     measurementId = db.Column(db.Integer, db.ForeignKey('measurements.id'))
     measurement = db.relationship('Measurement', back_populates='metadata_')
@@ -145,7 +145,7 @@ class Trial(db.Model):
     trialNumber = db.Column(db.Integer, default=1)
     concentration = db.Column(db.Float)
     sampleNumber = db.Column(db.Integer)
-    response = db.Column(db.String)
+    response = db.Column(db.String(length=30))
     responseCorrect = db.Column(db.Boolean)
 
     measurementId = db.Column(db.Integer, db.ForeignKey('measurements.id'))
@@ -162,7 +162,7 @@ class StaircaseHandler(db.Model):
     __tablename__ = 'staircase_handlers'
 
     id = db.Column(db.Integer, primary_key=True)
-    staircaseHandler = db.Column(db.String)
+    staircaseHandler = db.Column(db.Text(length=500000))
 
     measurementId = db.Column(db.Integer, db.ForeignKey('measurements.id'))
     measurement = db.relationship('Measurement',

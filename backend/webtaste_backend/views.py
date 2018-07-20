@@ -111,7 +111,7 @@ class MeasurementWithoutIdApi(Resource):
         measurement_id = measurement.id
         data = marshal(models.Measurement
                        .query
-                       .order_by('-id')
+                       .order_by(models.Measurement.id.desc())
                        .first(),
                        fields=models.measurement)
 
@@ -287,7 +287,9 @@ class TrialsWithoutNumber(Resource):
 
     @api.expect(models.trial_new)
     @api.doc(responses={201: 'Created',
-                        404: 'Resource not found'})
+                        204: 'No content',
+                        404: 'Resource not found',
+                        412: 'Precondition failed'})
     def post(self, measurement_id):
         """Create a new trial.
         """
@@ -300,51 +302,85 @@ class TrialsWithoutNumber(Resource):
         if measurement is None:
             abort(404)
 
-        previous_trial = measurement.trials[-1]
         staircase_handler = measurement.staircaseHandler
-
         modality = measurement.metadata_.modality
         substance = measurement.metadata_.substance
         staircase_handler_ = json_tricks.loads(staircase_handler.staircaseHandler)
 
-        if not previous_trial:
+        if not measurement.trials:
             trial_number = 1
         else:
+            previous_trial = measurement.trials[-1]
+
+            if previous_trial.response is None:
+                abort(412)
+
             trial_number = previous_trial.trialNumber + 1
 
         # Find the intensity / concentration we have actually prepared.
         concentration_steps = gen_concentration_steps(modality)[substance]
-        proposed_concentration = staircase_handler_.__next__()
 
-        concentration = find_nearest(concentration_steps,
-                                     proposed_concentration)
+        try:
+            proposed_concentration = staircase_handler_.__next__()
+            finished = False
+        except StopIteration:
+            finished = True
 
-        sample_number = get_sample_number(concentration_steps, concentration)
+        if not finished:
+            concentration = find_nearest(concentration_steps,
+                                         proposed_concentration)
+            sample_number = get_sample_number(concentration_steps, concentration)
 
-        trial = models.Trial(trialNumber=trial_number,
-                             concentration=concentration,
-                             sampleNumber=sample_number)
-        trial.measurement = measurement
+            # If the concentration we selected is equal to the one previously presented ...
+            if ((trial_number > 1) and
+                    (sample_number == previous_trial.sampleNumber)):
 
-        staircase_handler_.addOtherData('Concentration', concentration)
-        staircase_handler_.addOtherData('Sample_Number', sample_number)
+                # ... and we got a correct response ...
+                if previous_trial.responseCorrect:
+                    # ... and we have not yet reached the lowest prepared concentration ...
+                    if previous_trial.sampleNumber < len(concentration_steps):
+                        # ... move to a lower concentration!
+                        concentration = concentration_steps[previous_trial.sampleNumber]
+                        sample_number = get_sample_number(concentration_steps,
+                                                          concentration)
+                # ... and we got an incorrect response ...
+                else:
+                    # ... and we have not yet reached the highest prepared concentration ...
+                    if previous_trial.sampleNumber > 1:
+                        # ... more up to a higher concentration!
+                        concentration = concentration_steps[previous_trial.sampleNumber - 1]
+                        sample_number = get_sample_number(concentration_steps,
+                                                          concentration)
 
-        staircase_handler.staircaseHandler = json_tricks.dumps(staircase_handler_)
-        measurement.currentTrialNumber = trial_number
+            trial = models.Trial(trialNumber=trial_number,
+                                 concentration=concentration,
+                                 sampleNumber=sample_number)
+            trial.measurement = measurement
 
-        db.session.add_all([measurement, trial, staircase_handler])
-        db.session.commit()
+            staircase_handler_.addOtherData('Concentration', concentration)
+            staircase_handler_.addOtherData('Sample_Number', sample_number)
 
-        data = marshal(trial, models.trial_server_response)
-        data['links'] = {
-            'measurements': f'/api/measurements/',
-            'measurement': f'/api/measurements/{measurement_id}/',
-            'trials': f'/api/measurements/{measurement_id}/trials/',
-            'self': f'/api/measurements/{measurement_id}/trials/{trial_number}'
-        }
+            staircase_handler.staircaseHandler = json_tricks.dumps(staircase_handler_)
+            measurement.currentTrialNumber = trial_number
 
-        response = {'data': data}
-        return response, 201, {'Location': data['links']['self']}
+            db.session.add_all([measurement, trial, staircase_handler])
+            db.session.commit()
+
+            data = marshal(trial, models.trial_server_response)
+            data['links'] = {
+                'measurements': f'/api/measurements/',
+                'measurement': f'/api/measurements/{measurement_id}/',
+                'trials': f'/api/measurements/{measurement_id}/trials/',
+                'self': f'/api/measurements/{measurement_id}/trials/{trial_number}'
+            }
+
+            response = {'data': data}
+            return response, 201, {'Location': data['links']['self']}
+        else:
+            measurement.finished = True
+            db.session.add(measurement)
+            db.session.commit()
+            return {}, 204
 
 
 @api.route('/api/measurements/'
@@ -392,17 +428,31 @@ class TrialsWithNumber(Resource):
                          (models.Trial.trialNumber == trial_number))
                  .first())
 
+        staircase_handler = (models.Measurement
+                             .query
+                             .filter(models.Measurement.id == measurement_id)
+                             .first()
+                             .staircaseHandler)
+
         if trial is None:
             abort(404)
         else:
-            # Only allow updating of the current trial.
-            if trial.trialNumber < trial.measurement.currentTrialNumber:
+            # Only allow updating of the current trial, and only if it hasn't
+            # been updated already.
+            staircase_handler_ = json_tricks.loads(staircase_handler.staircaseHandler)
+
+            if ((trial.trialNumber != trial.measurement.currentTrialNumber) or
+                    (len(staircase_handler_.data) >= trial.trialNumber)):
                 return {}, 405, {'Allow': 'GET'}
 
             trial.responseCorrect = payload['responseCorrect']
             trial.response = payload['response']
 
-            db.session.add(trial)
+            staircase_handler_.addResponse(int(payload['responseCorrect']))
+            staircase_handler_.addOtherData('Response', payload['response'])
+            staircase_handler.staircaseHandler = json_tricks.dumps(staircase_handler_)
+
+            db.session.add_all([trial, staircase_handler])
             db.session.commit()
 
             data = marshal(trial, models.trial_server_response)
@@ -429,7 +479,7 @@ class TrialsWithNumber(Resource):
         current_trial = (models.Trial
                          .query
                          .filter(models.Trial.measurementId == measurement_id)
-                         .order_by('-id')
+                         .order_by(models.Trial.id.desc())
                          .first())
 
         if not current_trial:
@@ -549,34 +599,35 @@ def _init_quest_gustatory(exp_info):
     return q
 
 
-def _get_next_quest_concentration_gustatory(quest_proposed_concentration,
-                                            previous_concentration,
-                                            previous_response_correct,
-                                            substance):
-    # Find the intensity / concentration we have actually prepared
-    concentration_steps = CONCENTRATION_STEPS[substance]
-    next_concentration = find_nearest(concentration_steps,
-                                      quest_proposed_concentration)
-
-    # If the concentration we selected is equal to the one previously presented ...
-    if next_concentration == previous_concentration:
-        idx_previous_conc = get_sample_number(concentration_steps,
-                                              previous_concentration)
-
-        # ... and we got a correct response ...
-        if previous_response_correct:
-            # ... and we have not yet reached the lowest prepared concentration ...
-            if idx_previous_conc < concentration_steps.size - 1:
-                # ... move to a lower concentration!
-                next_concentration = concentration_steps[idx_previous_conc + 1]
-        # ... and we got an incorrect response ...
-        else:
-            # ... and we have not yet reached the highest prepared concentration ...
-            if idx_previous_conc != 0:
-                # ... more up to a higher concentration!
-                next_concentration = concentration_steps[idx_previous_conc - 1]
-
-    next_jar = int(get_sample_number(concentration_steps,
-                                     next_concentration) + 1)
-
-    return next_concentration, next_jar
+# def _get_next_quest_concentration_gustatory(quest_proposed_concentration,
+#                                             previous_concentration,
+#                                             previous_response_correct,
+#                                             modality,
+#                                             substance):
+#     # Find the intensity / concentration we have actually prepared
+#     concentration_steps = gen_concentration_steps(modality)[substance]
+#     next_concentration = find_nearest(concentration_steps,
+#                                       quest_proposed_concentration)
+#
+#     # If the concentration we selected is equal to the one previously presented ...
+#     if next_concentration == previous_concentration:
+#         idx_previous_conc = get_sample_number(concentration_steps,
+#                                               previous_concentration)
+#
+#         # ... and we got a correct response ...
+#         if previous_response_correct:
+#             # ... and we have not yet reached the lowest prepared concentration ...
+#             if idx_previous_conc < concentration_steps.size - 1:
+#                 # ... move to a lower concentration!
+#                 next_concentration = concentration_steps[idx_previous_conc + 1]
+#         # ... and we got an incorrect response ...
+#         else:
+#             # ... and we have not yet reached the highest prepared concentration ...
+#             if idx_previous_conc != 0:
+#                 # ... more up to a higher concentration!
+#                 next_concentration = concentration_steps[idx_previous_conc - 1]
+#
+#     next_jar = int(get_sample_number(concentration_steps,
+#                                      next_concentration) + 1)
+#
+#     return next_concentration, next_jar
