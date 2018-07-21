@@ -139,8 +139,7 @@ class App extends Component {
     if (!this.state.measurementStarted) {
       return (
           <div className="measurement-info">
-            <Startup startMeasurement={this.startMeasurement}
-                     dateSetter={this.setDate}/>
+            <Startup startMeasurement={this.startMeasurement} />
           </div>
       )
     } else {
