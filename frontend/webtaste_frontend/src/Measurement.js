@@ -115,7 +115,7 @@ class ConfirmRestartModal extends Component {
   }
 }
 
-class Experiment extends Component {
+class Measurement extends Component {
   state = {
     showConfirmRestartModal: false
   };
@@ -201,4 +201,4 @@ class Experiment extends Component {
   }
 }
 
-export default Experiment;
+export default Measurement;

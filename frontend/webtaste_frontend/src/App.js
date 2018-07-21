@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import Startup from './Startup'
-import Experiment from './Experiment'
+import Measurement from './Measurement'
 // import './App.css';
 
 
@@ -118,20 +118,20 @@ class App extends Component {
     }
   };
 
-  renderExperiment = () =>
+  renderMeasurement = () =>
   {
     return (
       <div>
-        <Experiment trial={this.state.currentTrialNumber}
-                    measurementId={this.state.measurementId}
-                    concentration={this.state.concentration}
-                    concentrations={this.state.concentrations}
-                    sampleNumber={this.state.sampleNumber}
-                    threshold={this.state.threshold}
-                    finished={this.state.measurementFinished}
-                    expInfo={this.state.metadata}
-                    onResponse={this.submitParticipantResponse}
-                    onRestart={this.resetState}/>
+        <Measurement trial={this.state.currentTrialNumber}
+                     measurementId={this.state.measurementId}
+                     concentration={this.state.concentration}
+                     concentrations={this.state.concentrations}
+                     sampleNumber={this.state.sampleNumber}
+                     threshold={this.state.threshold}
+                     finished={this.state.measurementFinished}
+                     expInfo={this.state.metadata}
+                     onResponse={this.submitParticipantResponse}
+                     onRestart={this.resetState}/>
       </div>
     );
   };
@@ -139,13 +139,13 @@ class App extends Component {
   renderMainView = () => {
     if (!this.state.measurementStarted) {
       return (
-          <div className="exp-info">
+          <div className="measurement-info">
             <Startup startStaircase={this.startStaircase}
                      dateSetter={this.setDate}/>
           </div>
       )
     } else {
-      return <div className='experiment'>{this.renderExperiment()}</div>
+      return <div className="measurement">{this.renderMeasurement()}</div>
     }
   };
 

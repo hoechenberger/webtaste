@@ -217,7 +217,7 @@ class Startup extends Component {
   render () {
     return (
       <div>
-        <Form onSubmit={this.handleSubmit} className='exp-info-form'>
+        <Form onSubmit={this.handleSubmit} className='measurement-info-form'>
           <Card className="participant-info-card">
             <CardHeader onClick={this.toggleParticipantInfoCard}>
                 Participant Info
@@ -274,7 +274,7 @@ class Startup extends Component {
             </Collapse>
           </Card>
 
-          <Card className="exp-settings-card">
+          <Card className="measurement-settings-card">
             <CardHeader onClick={this.toggleExperimentSettingsCard}>
                 Experiment Settings
             </CardHeader>

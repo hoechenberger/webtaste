@@ -40,7 +40,7 @@ body {
 .app {
 }
 
-.exp-info-form {
+.measurement-info-form {
   width: 70%;
   min-width: 300px;
   max-width: 450px;
@@ -57,7 +57,7 @@ body {
 }
 
 .participant-info-card,
-.exp-settings-card {
+.measurement-settings-card {
   margin: 2em 0 0 0;
 }
 
@@ -66,7 +66,7 @@ body {
 }
 
 .participant-info-card .card-header,
-.exp-settings-card .card-header {
+.measurement-settings-card .card-header {
   text-align: center;
   font-weight: bold;
   cursor: pointer;
