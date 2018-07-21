@@ -3,7 +3,7 @@
 import json_tricks
 from datetime import datetime
 from io import StringIO
-from flask import request, abort
+from flask import request, abort, Response
 from flask_restplus import Resource, marshal
 from psychopy.data import QuestHandler
 
@@ -75,7 +75,7 @@ class MeasurementWithoutIdApi(Resource):
         # # the payload!)
         # # The skipping of optional values currently should only apply to
         # # `startVal`.
-        models.measurement_metadata.validate(payload)
+        # models.measurement_metadata.validate(payload)
 
         metadata = dict()
         for k in models.measurement_metadata.keys():
@@ -95,6 +95,7 @@ class MeasurementWithoutIdApi(Resource):
                 pass
 
         staircase_handler.originPath = ''
+        staircase_handler.origin = ''
 
         measurement = models.Measurement()
         metadata_ = models.MeasurementMetadata(**metadata)
@@ -500,38 +501,41 @@ class TrialsWithNumber(Resource):
             return response
 
 
-def _gen_quest_report_gustation(quest_handler):
-    q = quest_handler
+def _gen_quest_report_gustation(measurement):
+    staircase_handler = json_tricks.loads(measurement.staircaseHandler.staircaseHandler)
+
+    q = staircase_handler
     responses = q.data
+
 
     concentrations = q.otherData['Concentration']
     concentration_unit = 'log10 mol/L'
-    jars = q.otherData['Jar']
-    participant = q.extraInfo['Participant']
-    age = q.extraInfo['Age']
-    gender = q.extraInfo['Gender']
-    substance = q.extraInfo['Substance']
-    lateralization = q.extraInfo['Lateralization']
-    session = q.extraInfo['Session']
+    jars = q.otherData['Sample_Number']
+    participant = measurement.metadata_.participant,
+    age = measurement.metadata_.age
+    gender = measurement.metadata_.gender,
+    substance =measurement.metadata_.substance,
+    lateralization = measurement.metadata_.lateralization,
+    session = measurement.metadata_.session,
     trials = list(range(1, len(responses) + 1))
     modality = 'gustatory'
     method = 'QUEST'
     comments = q.otherData.get('Comment', '')
 
-    dt_utc = datetime.strptime(q.extraInfo['Date'],
+    dt_utc = datetime.strptime(measurement.metadata_.date,
                                '%a, %d %b %Y %H:%M:%S %Z')
     date_utc = dt_utc.strftime('%Y-%m-%d %H:%M:%S')
     time_zone = 'GMT'
 
     data = pd.DataFrame(
-        dict(Participant=participant,
+        dict(Participant=participant[0],
              Age=age,
-             Gender=gender,
+             Gender=gender[0],
              Modality=modality,
-             Substance=substance,
-             Lateralization=lateralization,
+             Substance=substance[0],
+             Lateralization=lateralization[0],
              Method=method,
-             Session=session,
+             Session=session[0],
              Trial=trials,
              Jar=jars,
              Concentration=concentrations,
@@ -546,36 +550,41 @@ def _gen_quest_report_gustation(quest_handler):
     print(data)
     f.seek(0)
 
-    filename_base = (f'{participant}_'
+    filename_base = (f'{participant[0]}_'
                      f'{modality[:4]}_'
-                     f'{lateralization.split(" ")[0]}_'
+                     f'{lateralization[0].split(" ")[0]}_'
                      f'{method}_'
-                     f'{session}')
+                     f'{session[0]}')
 
     filename_csv = filename_base + '.csv'
     return filename_csv, f
 
 
-# @api.route('/api/measurements/<int:measurement_id>/reports')
-# class QuestReport(Resource):
-#     @api.expect(models.quest_handler)
-#     def get(self, measurement_id):
-#         """Retrieve reports and logfiles of an experimental run.
-#         """
-#         payload = json_tricks.loads(request.get_data(as_text=True))
-#         models.quest_handler.validate(payload)
-#
-#         filename_csv, f = _gen_quest_report_gustation(payload['staircaseHandler'])
-#
-#         print(filename_csv)
-#         r = Response(
-#             f,
-#             mimetype='text/csv',
-#             headers={'Content-Disposition': f'attachment; '
-#                                             f'filename={filename_csv}'})
-#
-#         return r
-#
+@api.route('/api/measurements/<int:measurement_id>/report')
+class Report(Resource):
+    def get(self, measurement_id):
+        """Retrieve reports and logfiles of an experimental run.
+        """
+        mask = models.Measurement.id == measurement_id
+        measurement = (models.Measurement
+                       .query
+                       .filter(mask)
+                       .first())
+
+        if measurement is None:
+            abort(404)
+        else:
+            filename_csv, f = _gen_quest_report_gustation(measurement)
+
+            print(filename_csv)
+            r = Response(
+                f,
+                mimetype='text/csv',
+                headers={'Content-Disposition': f'attachment; '
+                                                f'filename={filename_csv}'})
+
+            return r
+
 
 def _init_quest_gustatory(exp_info):
     modality = 'gustatory'

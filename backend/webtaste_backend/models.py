@@ -46,7 +46,7 @@ measurement_metadata = api.model('Measurement Metadata', {
                         enum=[15, 16], example=15),
     'session': String(description='Session',
                       required=True, example='Test'),
-    'date': DateTime(description='Date', required=True)})
+    'date': String(description='Date', required=True)})
 
 trial = api.model('Trial', {
     'id': Integer(description='Trial number', required=True),
@@ -74,6 +74,8 @@ trial_server_response = api.model('Trial', {
                                required=True)})
 
 trial_new = api.model('New trial', {})
+
+report_new = api.model('New report', {})
 
 
 measurement = api.model('Measurement', {

@@ -48,19 +48,14 @@ class TrialPlot extends Component {
 
 class DownloadReportButtton extends Component {
   _getQuestReportFromApi = async (questHandler) => {
-    const payload = {
-      modality: this.props.modality,
-      algorithm: this.props.algorithm,
-      staircaseHandler: questHandler
-    };
-
-    const response = await fetch('/api/measurements/report/', {
+    const uri = '/api/measurements/' + this.props.measurementId + '/report';
+    const response = await fetch(uri, {
       method: 'get',
       headers: {
         'Accept': 'application/json, text/plain, */*',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(payload)
+      body: {}
     });
 
     return await response;
@@ -121,7 +116,9 @@ class ConfirmRestartModal extends Component {
 }
 
 class Experiment extends Component {
-  state = {showConfirmRestartModal: false};
+  state = {
+    showConfirmRestartModal: false
+  };
 
   handleYesResponseButton = () => this.props.onResponse(true);
   handleNoResponseButton = () => this.props.onResponse(false);
@@ -140,7 +137,7 @@ class Experiment extends Component {
                              body='Would you like to abort the current measurement?'
                              confirmButtonText='Abort Measurement'/>
 
-      <strong>Please present jar {this.props.jar}. </strong><br />
+      <strong>Please present jar {this.props.sampleNumber}. </strong><br />
         Did the participant successfully recognize this concentration?<br /><br />
         <Button color="success"
                 onClick={this.handleYesResponseButton}
@@ -161,9 +158,8 @@ class Experiment extends Component {
         <strong>Measurement completed.</strong><br />
         Threshold estimate: <strong>{this.props.threshold} log<sub>10</sub> mol/L</strong><br /><br />
         <DownloadReportButtton
-            modality={this.props.expInfo.modality}
-            algorithm={this.props.expInfo.algorithm}
-            staircaseHandler={this.props.staircaseHandler} />{' '}
+            measurementId={this.props.measurementId}
+        />{' '}
         <Button color="danger"
                 onClick={this.toggleConfirmRestartModal}>New Measurement</Button>
         {/*<ConfirmRestartModal open={this.state.showConfirmRestartModal}/>*/}

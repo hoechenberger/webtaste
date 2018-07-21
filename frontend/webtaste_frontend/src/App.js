@@ -7,9 +7,10 @@ import Experiment from './Experiment'
 
 class App extends Component {
   initialState = {
-    staircaseStarted: false,
-    staircaseFinished: false,
-    expInfo: {
+    measurementStarted: false,
+    measurementFinished: false,
+    measurementId: null,
+    metadata: {
       participant: null,
       age: null,
       gender: null,
@@ -21,12 +22,12 @@ class App extends Component {
       session: null,
       date: null
     },
-    trial: null,
+    currentTrialNumber: null,
+    trialsCompletedCount: null,
     concentration: null,
-    concentrations: null,
-    jar: null,
+    concentrations: [],
+    sampleNumber: null,
     threshold: null,
-    staircaseHandler: null,
     date: null
   };
 
@@ -47,29 +48,29 @@ class App extends Component {
       body: JSON.stringify(expInfo)
     });
 
-    const json = await response.json();
-    return json.measurement_id;
+    return await response.json()
+    // return json.measurement_id;
   };
 
-  _updateStaircaseFromApi = async (participantResponse) => {
-    const payload = {
-      staircaseHandler: this.state.staircaseHandler,
-      concentration: this.state.concentration,
-      responseCorrect: participantResponse,
-      comment: ''
-    };
-
-    const response = await fetch('/api/measurements/', {
-      method: 'patch',
-      headers: {
-        'Accept': 'application/json, text/plain, */*',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
-
-    return await response.json();
-  };
+  // _updateStaircaseFromApi = async (participantResponse) => {
+  //   const payload = {
+  //     staircaseHandler: this.state.staircaseHandler,
+  //     concentration: this.state.concentration,
+  //     responseCorrect: participantResponse,
+  //     comment: ''
+  //   };
+  //
+  //   const response = await fetch('/api/measurements/', {
+  //     method: 'put',
+  //     headers: {
+  //       'Accept': 'application/json, text/plain, */*',
+  //       'Content-Type': 'application/json'
+  //     },
+  //     body: JSON.stringify(payload)
+  //   });
+  //
+  //   return await response.json();
+  // };
 
 
 
@@ -80,68 +81,101 @@ class App extends Component {
   // };
 
   startStaircase = async (expInfo) => {
-    const measurementId = await this._initStaircaseFromApi(expInfo);
-    console.log(measurementId);
+    const r = await this._initStaircaseFromApi(expInfo);
+    this.setState({
+      measurementId: r.data.id,
+      measurementStarted: r.data.started,
+      measurementFinished: r.data.finished,
+      trialsCompletedCount: 0,
+      metadata: r.data.metadata
+    });
 
-    // this.setState({expInfo: expInfo},
-    //   () => {
-    //     const expInfo = this.state.expInfo;
-    //     // const foo = await this._initStaircaseFromApi(expInfo);
-    //     console.log(foo)
-    //     // this._initStaircaseFromApi(expInfo).then(response => {
-    //     //   this.setState({measurement_id: response.measurement_id});
-    //     //     // trial: e.trial,
-    //     //     // concentration: e.concentration,
-    //     //     // concentrations: e.staircaseHandler.attributes.otherData.Concentration,
-    //     //     // jar: e.jar,
-    //     //     // staircaseHandler: e.staircaseHandler,
-    //     //     // date: e.date,
-    //     //     // staircaseStarted: true});
-    //     //     console.log(response.measurement_id);
-    //     // });
-    //
-    //   })
+    this.createNewTrial();
   };
 
-  handleParticipantResponse = (response) => {
-    const serverResponse = this._updateStaircaseFromApi(response);
-    serverResponse.then( (e) => {
-      console.log(e);
+  createNewTrial = async () => {
+    const uri = '/api/measurements/' + this.state.measurementId + '/trials/';
+    const response = await fetch(uri, {
+      method: 'post',
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json'
+      },
+      body: {}
+    });
+
+    if (response.status === 201) {
+      const json = await response.json();
       this.setState({
-        trial: e.trial,
-        concentration: e.concentration,
-        concentrations: e.staircaseHandler.attributes.otherData.Concentration,
-        jar: e.jar,
-        threshold: e.threshold,
-        staircaseHandler: e.staircaseHandler,
-        staircaseFinished: e.finished
-      })
-    })
+        sampleNumber: json.data.sampleNumber,
+        concentration: json.data.concentration,
+        currentTrialNumber: json.data.trialNumber,
+        measurementStarted: true
+      });
+
+      let concentrations = this.state.concentrations;
+      concentrations.push(json.data.concentration);
+      this.setState({concentrations: concentrations});
+
+      return true
+    } else {
+      return false
+    }
+
+    // if (this.state.concentrations === null) {
+    //   this.setState({
+    //     concentrations: [json.data.concentration]
+    //   })
+    // } else {
+    //   this.setState({
+    //     concentrations: this.state.concentrations.push(json.data.concentration)
+    //   })
+    // }
   };
 
+  submitParticipantResponse = async (participantResponse) => {
+    const uri = '/api/measurements/' + this.state.measurementId + '/trials/' + this.state.currentTrialNumber;
 
-  finishStaircase = () => {this.setState({staircaseFinished: true})};
+    const payload = {
+      response: "",
+      responseCorrect: participantResponse,
+    };
+
+    await fetch(uri, {
+      method: 'put',
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const newTrial = await this.createNewTrial();
+    if (!newTrial) {
+      this.setState({measurementFinished: true})
+    }
+  };
 
   renderExperiment = () =>
   {
     return (
       <div>
-        <Experiment trial={this.state.trial}
+        <Experiment trial={this.state.currentTrialNumber}
+                    measurementId={this.state.measurementId}
                     concentration={this.state.concentration}
                     concentrations={this.state.concentrations}
-                    jar={this.state.jar}
+                    sampleNumber={this.state.sampleNumber}
                     threshold={this.state.threshold}
-                    finished={this.state.staircaseFinished}
-                    expInfo={this.state.expInfo}
-                    questHandler={this.state.staircaseHandler}
-                    onResponse={this.handleParticipantResponse}
+                    finished={this.state.measurementFinished}
+                    expInfo={this.state.metadata}
+                    onResponse={this.submitParticipantResponse}
                     onRestart={this.resetState}/>
       </div>
     );
   };
 
   renderMainView = () => {
-    if (!this.state.staircaseStarted) {
+    if (!this.state.measurementStarted) {
       return (
           <div className="exp-info">
             <Startup startStaircase={this.startStaircase}
