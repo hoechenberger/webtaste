@@ -35,7 +35,13 @@ class App extends Component {
 
   resetState = () => this.setState(this.initialState);
 
-  _initStaircaseFromApi = async (expInfo) => {
+  // componentDidMount() {
+  //   const foo = x('foo', 'citric acid', 'left', 'Retest');
+  //   foo.then(f => console.log(f));
+  //   // this.startStaircase();
+  // };
+
+  startStaircase = async (expInfo) => {
     const response = await fetch('/api/measurements/', {
       method: 'post',
       headers: {
@@ -45,18 +51,8 @@ class App extends Component {
       body: JSON.stringify(expInfo)
     });
 
-    return await response.json()
-    // return json.measurement_id;
-  };
+    const r = await response.json();
 
-  // componentDidMount() {
-  //   const foo = x('foo', 'citric acid', 'left', 'Retest');
-  //   foo.then(f => console.log(f));
-  //   // this.startStaircase();
-  // };
-
-  startStaircase = async (expInfo) => {
-    const r = await this._initStaircaseFromApi(expInfo);
     this.setState({
       measurementId: r.data.id,
       measurementStarted: r.data.started,
