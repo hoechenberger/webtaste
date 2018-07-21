@@ -169,11 +169,11 @@ class Measurement extends Component {
     return (
       <div>
         <div>
-          — Participant {this.props.expInfo.participant} —<br/>
+          — Participant {this.props.metadata.participant} —<br/>
           <small>
-            Substance: {this.props.expInfo.substance},
-            Lateralization: {this.props.expInfo.lateralization},
-            Session: {this.props.expInfo.session}
+            Substance: {this.props.metadata.substance},
+            Lateralization: {this.props.metadata.lateralization},
+            Session: {this.props.metadata.session}
           </small>
           <br/><br/>
         </div>

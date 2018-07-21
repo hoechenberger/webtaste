@@ -44,14 +44,14 @@ class App extends Component {
   onMeasurementStarted = () => this.setState({measurementStarted: true});
   onMeasurementFinished = () => this.setState({measurementFinished: true});
 
-  startMeasurement = async (expInfo) => {
+  startMeasurement = async (metadata) => {
     const response = await fetch('/api/measurements/', {
       method: 'post',
       headers: {
         'Accept': 'application/json, text/plain, */*',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(expInfo)
+      body: JSON.stringify(metadata)
     });
 
     const r = await response.json();
@@ -128,7 +128,7 @@ class App extends Component {
                      sampleNumber={this.state.sampleNumber}
                      threshold={this.state.threshold}
                      finished={this.state.measurementFinished}
-                     expInfo={this.state.metadata}
+                     metadata={this.state.metadata}
                      onResponse={this.submitParticipantResponse}
                      onRestart={this.resetState}/>
       </div>

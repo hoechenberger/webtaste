@@ -127,7 +127,7 @@ class Startup extends Component {
   handleSubmit = (e) => {
     e.preventDefault();
 
-    let expInfo = {
+    let metadata = {
       participant: this.state.participant,
       age: this.state.age,
       gender: this.state.gender,
@@ -141,12 +141,11 @@ class Startup extends Component {
     };
 
     if (this.state.startVal) {
-      expInfo.startVal = this.state.startVal;
+      metadata.startVal = this.state.startVal;
     }
 
-    console.log(expInfo);
     this.saveStateToLocalStorage();
-    this.props.startMeasurement(expInfo);
+    this.props.startMeasurement(metadata);
   };
 
   toggleParticipantInfoCard = () => {
