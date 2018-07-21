@@ -35,9 +35,6 @@ class App extends Component {
 
   resetState = () => this.setState(this.initialState);
 
-  // componentDidMount = () => document.title = 'Threshold Estimation';
-
-
   _initStaircaseFromApi = async (expInfo) => {
     const response = await fetch('/api/measurements/', {
       method: 'post',
@@ -51,28 +48,6 @@ class App extends Component {
     return await response.json()
     // return json.measurement_id;
   };
-
-  // _updateStaircaseFromApi = async (participantResponse) => {
-  //   const payload = {
-  //     staircaseHandler: this.state.staircaseHandler,
-  //     concentration: this.state.concentration,
-  //     responseCorrect: participantResponse,
-  //     comment: ''
-  //   };
-  //
-  //   const response = await fetch('/api/measurements/', {
-  //     method: 'put',
-  //     headers: {
-  //       'Accept': 'application/json, text/plain, */*',
-  //       'Content-Type': 'application/json'
-  //     },
-  //     body: JSON.stringify(payload)
-  //   });
-  //
-  //   return await response.json();
-  // };
-
-
 
   // componentDidMount() {
   //   const foo = x('foo', 'citric acid', 'left', 'Retest');
@@ -106,31 +81,18 @@ class App extends Component {
 
     if (response.status === 201) {
       const json = await response.json();
-      this.setState({
+      this.setState(prevState => ({
         sampleNumber: json.data.sampleNumber,
         concentration: json.data.concentration,
+        // https://stackoverflow.com/a/37002941/1944216
+        concentrations: [...prevState.concentrations, json.data.concentration],
         currentTrialNumber: json.data.trialNumber,
         measurementStarted: true
-      });
-
-      let concentrations = this.state.concentrations;
-      concentrations.push(json.data.concentration);
-      this.setState({concentrations: concentrations});
-
+      }));
       return true
     } else {
       return false
     }
-
-    // if (this.state.concentrations === null) {
-    //   this.setState({
-    //     concentrations: [json.data.concentration]
-    //   })
-    // } else {
-    //   this.setState({
-    //     concentrations: this.state.concentrations.push(json.data.concentration)
-    //   })
-    // }
   };
 
   submitParticipantResponse = async (participantResponse) => {
