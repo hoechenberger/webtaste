@@ -117,18 +117,103 @@ class ConfirmRestartModal extends Component {
 
 class Measurement extends Component {
   state = {
+    measurementId: null,
+    measurementStarted: null,
+    measurementFinished: null,
+    trialsCompletedCount: 0,
+    concentration: null,
+    concentrations: [],
+    sampleNumber: null,
+    threshold: null,
     showConfirmRestartModal: false
   };
 
-  handleYesResponseButton = () => this.props.onResponse(true);
-  handleNoResponseButton = () => this.props.onResponse(false);
+  componentDidMount = () => this.startMeasurement(this.props.metadata);
+
+  handleYesResponseButton = () => this.submitParticipantResponse(true);
+  handleNoResponseButton = () => this.submitParticipantResponse(false);
+
+  startMeasurement = async (metadata) => {
+    const response = await fetch('/api/measurements/', {
+      method: 'post',
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(metadata)
+    });
+
+    const r = await response.json();
+
+    this.setState({
+      measurementId: r.data.id,
+      measurementStarted: r.data.started,
+      measurementFinished: r.data.finished,
+      trialsCompletedCount: 0,
+      currentTrialNumber: null,
+      metadata: r.data.metadata
+    });
+
+    this.createNewTrial();
+  };
+
+  createNewTrial = async () => {
+    const uri = '/api/measurements/' + this.state.measurementId + '/trials/';
+    const response = await fetch(uri, {
+      method: 'post',
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json'
+      },
+      body: {}
+    });
+
+    if (response.status === 201) {
+      const json = await response.json();
+      this.setState(prevState => ({
+        sampleNumber: json.data.sampleNumber,
+        concentration: json.data.concentration,
+        // https://stackoverflow.com/a/37002941/1944216
+        concentrations: [...prevState.concentrations, json.data.concentration],
+        currentTrialNumber: json.data.trialNumber,
+        measurementStarted: true
+      }));
+      return true
+    } else {
+      return false
+    }
+  };
+
+  submitParticipantResponse = async (participantResponse) => {
+    const uri = '/api/measurements/' + this.state.measurementId + '/trials/' + this.state.currentTrialNumber;
+
+    const payload = {
+      response: "",
+      responseCorrect: participantResponse,
+    };
+
+    await fetch(uri, {
+      method: 'put',
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const newTrial = await this.createNewTrial();
+    if (!newTrial) {
+      this.setState({measurementFinished: true})
+    }
+  };
+
 
   toggleConfirmRestartModal = () => this.setState(
     {showConfirmRestartModal: !this.state.showConfirmRestartModal}
   );
 
   render () {
-    const buttons = !this.props.finished ? (
+    const buttons = !this.state.measurementFinished ? (
       <div>
         <ConfirmRestartModal show={this.state.showConfirmRestartModal}
                              toggle={this.toggleConfirmRestartModal}
@@ -137,14 +222,14 @@ class Measurement extends Component {
                              body='Would you like to abort the current measurement?'
                              confirmButtonText='Abort Measurement'/>
 
-      <strong>Please present jar {this.props.sampleNumber}. </strong><br />
+      <strong>Please present jar {this.state.sampleNumber}. </strong><br />
         Did the participant successfully recognize this concentration?<br /><br />
         <Button color="success"
                 onClick={this.handleYesResponseButton}
-                disabled={this.props.finished}>Yes</Button>{' '}
+                disabled={this.state.measurementFinished}>Yes</Button>{' '}
         <Button color="danger"
                 onClick={this.handleNoResponseButton}
-                disabled={this.props.finished}>No</Button>{' '}
+                disabled={this.state.measurementFinished}>No</Button>{' '}
       </div>
     ) : (
       <div>
@@ -156,9 +241,9 @@ class Measurement extends Component {
                              confirmButtonText='New Measurement'/>
 
         <strong>Measurement completed.</strong><br />
-        Threshold estimate: <strong>{this.props.threshold} log<sub>10</sub> mol/L</strong><br /><br />
+        Threshold estimate: <strong>{this.state.threshold} log<sub>10</sub> mol/L</strong><br /><br />
         <DownloadReportButtton
-            measurementId={this.props.measurementId}
+            measurementId={this.state.measurementId}
         />{' '}
         <Button color="danger"
                 onClick={this.toggleConfirmRestartModal}>New Measurement</Button>
@@ -188,9 +273,9 @@ class Measurement extends Component {
 
         </div>
         <div>
-          <TrialPlot concentrations={this.props.concentrations }/>
+          <TrialPlot concentrations={this.state.concentrations }/>
         </div>
-        {!this.props.finished ?
+        {!this.state.measurementFinished ?
           <div className='abort-button'>
             <Button color="danger"
                     onClick={this.toggleConfirmRestartModal}>Abort</Button>

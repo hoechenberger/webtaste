@@ -145,7 +145,7 @@ class Startup extends Component {
     }
 
     this.saveStateToLocalStorage();
-    this.props.startMeasurement(metadata);
+    this.props.onMetadataSubmit(metadata);
   };
 
   toggleParticipantInfoCard = () => {
