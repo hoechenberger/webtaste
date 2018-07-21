@@ -38,10 +38,13 @@ class App extends Component {
   // componentDidMount() {
   //   const foo = x('foo', 'citric acid', 'left', 'Retest');
   //   foo.then(f => console.log(f));
-  //   // this.startStaircase();
+  //   // this.startMeasurement();
   // };
 
-  startStaircase = async (expInfo) => {
+  onMeasurementStarted = () => this.setState({measurementStarted: true});
+  onMeasurementFinished = () => this.setState({measurementFinished: true});
+
+  startMeasurement = async (expInfo) => {
     const response = await fetch('/api/measurements/', {
       method: 'post',
       headers: {
@@ -136,7 +139,7 @@ class App extends Component {
     if (!this.state.measurementStarted) {
       return (
           <div className="measurement-info">
-            <Startup startStaircase={this.startStaircase}
+            <Startup startMeasurement={this.startMeasurement}
                      dateSetter={this.setDate}/>
           </div>
       )

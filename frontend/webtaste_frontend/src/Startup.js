@@ -146,7 +146,7 @@ class Startup extends Component {
 
     console.log(expInfo);
     this.saveStateToLocalStorage();
-    this.props.startStaircase(expInfo);
+    this.props.startMeasurement(expInfo);
   };
 
   toggleParticipantInfoCard = () => {
