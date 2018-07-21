@@ -47,7 +47,7 @@ class TrialPlot extends Component {
 
 
 class DownloadReportButtton extends Component {
-  _getQuestReportFromApi = async (questHandler) => {
+  _getQuestReportFromApi = async () => {
     const uri = '/api/measurements/' + this.props.measurementId + '/report';
     const response = await fetch(uri, {
       method: 'get',
@@ -62,7 +62,7 @@ class DownloadReportButtton extends Component {
   };
 
   handleClickDownloadReport = () => {
-    const response = this._getQuestReportFromApi(this.props.staircaseHandler);
+    const response = this._getQuestReportFromApi();
     let filename;
 
     response
