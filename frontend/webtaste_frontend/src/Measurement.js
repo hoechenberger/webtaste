@@ -2,11 +2,6 @@ import React, { Component } from 'react';
 import { Button, Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
 import Plot from 'react-plotly.js';
 import { saveAs } from 'file-saver';
-// import DownloadReportButtton from './DownloadReportButtton'
-
-// import { confirmAlert } from 'react-confirm-alert';
-// import 'react-confirm-alert/src/react-confirm-alert.css'
-// import { Confirm } from 'react-confirm-bootstrap';
 
 
 class TrialPlot extends Component {
@@ -54,11 +49,10 @@ class DownloadReportButtton extends Component {
       headers: {
         'Accept': 'application/json, text/plain, */*',
         'Content-Type': 'application/json'
-      },
-      body: {}
+      }
     });
 
-    return await response;
+    return response;
   };
 
   handleClickDownloadReport = () => {
@@ -129,7 +123,6 @@ class Measurement extends Component {
   };
 
   componentDidMount = () => this.startMeasurement(this.props.metadata);
-
   handleYesResponseButton = () => this.submitParticipantResponse(true);
   handleNoResponseButton = () => this.submitParticipantResponse(false);
 
