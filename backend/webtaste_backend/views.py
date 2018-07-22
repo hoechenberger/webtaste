@@ -3,7 +3,7 @@
 import json_tricks
 from datetime import datetime
 from io import StringIO
-from flask import request, abort, Response
+from flask import request, abort, Response, make_response
 from flask_restplus import Resource, marshal
 from psychopy.data import QuestHandler
 
@@ -381,7 +381,9 @@ class TrialsWithoutNumber(Resource):
             measurement.finished = True
             db.session.add(measurement)
             db.session.commit()
-            return {}, 204
+
+            response = make_response('', 204)
+            return response
 
 
 @api.route('/api/measurements/'
