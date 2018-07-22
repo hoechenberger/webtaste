@@ -41,7 +41,7 @@ class TrialPlot extends Component {
 }
 
 
-class DownloadReportButtton extends Component {
+class DownloadReportButton extends Component {
   _getQuestReportFromApi = async () => {
     const uri = '/api/measurements/' + this.props.measurementId + '/report';
     const response = await fetch(uri, {
@@ -55,25 +55,21 @@ class DownloadReportButtton extends Component {
     return response;
   };
 
-  handleClickDownloadReport = () => {
-    const response = this._getQuestReportFromApi();
-    let filename;
+  handleClick = async () => {
+    const response = await this._getQuestReportFromApi();
 
-    response
-      .then(r => {
-        const contentDispositionHeader = r.headers.get('content-disposition');
-        filename = contentDispositionHeader.split('=')[1];
-      });
+    const contentDispositionHeader = response.headers.get('content-disposition');
+    const filename = contentDispositionHeader.split('=')[1];
+    const blob = await response.blob();
 
-    response
-      .then(r => r.blob())
-      .then(blob => saveAs(blob, filename));
+    saveAs(blob, filename);
   };
 
   render () {
     return (
         <Button color='success'
-                onClick={this.handleClickDownloadReport}>Download Report
+                onClick={this.handleClick}>
+          Download Report
         </Button>
     );
   }
@@ -235,7 +231,7 @@ class Measurement extends Component {
 
         <strong>Measurement completed.</strong><br />
         Threshold estimate: <strong>{this.state.threshold} log<sub>10</sub> mol/L</strong><br /><br />
-        <DownloadReportButtton
+        <DownloadReportButton
             measurementId={this.state.measurementId}
         />{' '}
         <Button color="danger"
