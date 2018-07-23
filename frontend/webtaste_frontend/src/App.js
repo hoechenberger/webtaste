@@ -26,9 +26,6 @@ class App extends Component {
     metadata: metadata
   });
 
-  onMeasurementStarted = () => this.setState({measurementStarted: true});
-  onMeasurementFinished = () => this.setState({measurementFinished: true});
-
 
   renderMainView = () => {
     if (!this.state.metadataSubmitted) {
@@ -40,7 +37,9 @@ class App extends Component {
     } else {
       return (
           <div className="measurement">
-            <Measurement metadata={this.state.metadata} />
+            <Measurement
+                metadata={this.state.metadata}
+                onRestart={this.resetState}/>
           </div>
       )
     }
