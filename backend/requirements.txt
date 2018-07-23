@@ -1,5 +1,6 @@
 flask
 flask_restplus
 mysqlclient
+xlsxwriter
 
 -e .

@@ -7,6 +7,6 @@ setup(
     packages=['webtaste_backend'],
     include_package_data=True,
     install_requires=[
-        'flask', 'flask_restplus', 'mysqlclient'
+        'flask', 'flask_restplus', 'mysqlclient', 'xlsxwriter'
     ],
 )

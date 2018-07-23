@@ -9,6 +9,7 @@ from psychopy.data import QuestHandler
 
 import numpy as np
 import pandas as pd
+from io import BytesIO
 
 from .app import api, db
 from . import models
@@ -509,7 +510,6 @@ def _gen_quest_report_gustation(measurement):
     q = staircase_handler
     responses = q.data
 
-
     concentrations = q.otherData['Concentration']
     concentration_unit = 'log10 mol/L'
     jars = q.otherData['Sample_Number']
@@ -529,7 +529,24 @@ def _gen_quest_report_gustation(measurement):
     date_utc = dt_utc.strftime('%Y-%m-%d %H:%M:%S')
     time_zone = 'GMT'
 
-    data = pd.DataFrame(
+    threshold = q.mean()
+    data_threshold = pd.DataFrame(
+        dict(
+            Participant=participant[0],
+            Age=age,
+            Gender=gender[0],
+            Modality=modality,
+            Substance=substance[0],
+            Lateralization=lateralization[0],
+            Method=method,
+            Session=session[0],
+            Threshold=threshold,
+            Threshold_Unit=concentration_unit,
+            Date=date_utc,
+            Time_Zone=time_zone),
+        index=[0])
+
+    data_log = pd.DataFrame(
         dict(Participant=participant[0],
              Age=age,
              Gender=gender[0],
@@ -547,9 +564,15 @@ def _gen_quest_report_gustation(measurement):
              Date=date_utc,
              Time_Zone=time_zone))
 
-    f = StringIO()
-    data.to_csv(f, index=False)
-    print(data)
+    data_log.loc[data_log['responses'] == 0, 'responses'] = 'No'
+    data_log.loc[data_log['responses'] == 1, 'responses'] = 'Yes'
+
+    f = BytesIO()
+    writer = pd.ExcelWriter(f, engine='xlsxwriter')
+    data_threshold.to_excel(writer, sheet_name='Threshold', index=False)
+    data_log.to_excel(writer, sheet_name='Log', index=False)
+
+    writer.save()
     f.seek(0)
 
     filename_base = (f'{participant[0]}_'
@@ -558,8 +581,8 @@ def _gen_quest_report_gustation(measurement):
                      f'{method}_'
                      f'{session[0]}')
 
-    filename_csv = filename_base + '.csv'
-    return filename_csv, f
+    filename = filename_base + '.xlsx'
+    return filename, f
 
 
 @api.route('/api/measurements/<int:measurement_id>/report')
