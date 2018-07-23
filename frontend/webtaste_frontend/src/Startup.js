@@ -67,8 +67,8 @@ class SubstanceInput extends Component {
                  onChange={this.props.onChange}
                  required>
             <option disabled value="" hidden>– select –</option>
-            <option>olfactory-1</option>
-            <option>olfactory-2</option>
+            <option>2-phenylethanol</option>
+            <option>n-butanol</option>
           </Input>
       )
     }
@@ -187,7 +187,10 @@ class Startup extends Component {
   };
 
   handleAlgorithmChange = (e) => {
-    this.setState({algorithm: e.target.value});
+    this.setState({
+      algorithm: e.target.value,
+      startVal: ""
+    });
   };
 
   handleSubstanceChange = (e) => {
@@ -337,7 +340,7 @@ class Startup extends Component {
                     <option>right side</option>
                   </Input>
                 </FormGroup>
-                {this.state.modality === "olfactory" ? (
+                {(this.state.modality === "olfactory") && (this.state.algorithm === 'Hummel') ? (
                         <FormGroup>
                           <Label for="startval">
                             Starting concentration

@@ -93,7 +93,7 @@ class MeasurementWithoutIdApi(Resource):
                 staircase_handler = _init_quest_gustatory(metadata)
         elif metadata['modality'] == 'olfactory':
             if metadata['algorithm'] == 'QUEST':
-                pass
+                staircase_handler = _init_quest_olfactory(metadata)
             elif metadata['algorithm'] == 'Hummel':
                 pass
 
@@ -694,3 +694,24 @@ def _init_quest_gustatory(metadata):
                      extraInfo=metadata)
 
     return q
+
+
+def _init_quest_olfactory(metadata):
+    modality = 'olfactory'
+    substance = metadata['substance']
+
+    start_val = get_start_val(modality=modality, substance=substance)
+    sd = np.log10(20)
+    max_trials = 20
+    range_ = 20
+
+    q = QuestHandler(startVal=start_val,
+                     startValSd=sd,
+                     pThreshold=0.8035,
+                     beta=3.5, gamma=1.0/3, delta=0.01, grain=0.01,
+                     nTrials=max_trials,
+                     range=range_,
+                     extraInfo=metadata)
+
+    return q
+

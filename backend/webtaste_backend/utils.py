@@ -60,9 +60,7 @@ def gen_concentration_steps(modality, substance):
         else:
             raise ValueError('Invalid substance specified.')
     elif modality == 'olfactory':
-        num = 4.0
-        denom = np.array([2 ** x for x in range(16)])
-        concentrations = num / denom
+        concentrations = np.log10(np.geomspace(4/(2**0), 4/(2**15), num=16))
 
         if (substance == '2-phenylethanol') or (substance == 'n-butanol'):
             return concentrations
@@ -104,7 +102,7 @@ def get_start_val(modality, substance):
             raise ValueError('Invalid substance specified.')
     elif modality == 'olfactory':
         if (substance == '2-phenylethanol') or (substance == 'n-butanol'):
-            return c[7]
+            return c[6]
         else:
             raise ValueError('Invalid substance specified.')
     else:
