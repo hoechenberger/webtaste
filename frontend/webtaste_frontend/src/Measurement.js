@@ -114,12 +114,27 @@ class Measurement extends Component {
     concentrations: [],
     sampleNumber: null,
     threshold: null,
-    showConfirmRestartModal: false
+    showConfirmRestartModal: false,
+    responseButtonsEnabled: false
   };
 
   componentDidMount = () => this.startMeasurement(this.props.metadata);
-  handleYesResponseButton = () => this.submitParticipantResponse(true);
-  handleNoResponseButton = () => this.submitParticipantResponse(false);
+
+  handleYesResponseButton = () => {
+    this.setState({responseButtonsEnabled: false},
+        async () => {
+          await this.submitParticipantResponse(true);
+          this.setState({responseButtonsEnabled: true});
+        })
+  };
+
+  handleNoResponseButton = () => {
+    this.setState({responseButtonsEnabled: false},
+        async () => {
+          await this.submitParticipantResponse(false);
+          this.setState({responseButtonsEnabled: true});
+        })
+  };
 
   startMeasurement = async (metadata) => {
     const response = await fetch('/api/measurements/', {
@@ -142,7 +157,8 @@ class Measurement extends Component {
       metadata: r.data.metadata
     });
 
-    this.createNewTrial();
+    await this.createNewTrial();
+    this.setState({responseButtonsEnabled: true});
   };
 
   createNewTrial = async () => {
@@ -213,10 +229,10 @@ class Measurement extends Component {
         Did the participant successfully recognize this concentration?<br /><br />
         <Button color="success"
                 onClick={this.handleYesResponseButton}
-                disabled={this.state.measurementFinished}>Yes</Button>{' '}
+                disabled={!this.state.responseButtonsEnabled}>Yes</Button>{' '}
         <Button color="danger"
                 onClick={this.handleNoResponseButton}
-                disabled={this.state.measurementFinished}>No</Button>{' '}
+                disabled={!this.state.responseButtonsEnabled}>No</Button>{' '}
       </div>
     ) : (
       <div>
