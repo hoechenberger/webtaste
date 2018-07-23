@@ -322,7 +322,7 @@ class TrialsWithoutNumber(Resource):
             trial_number = previous_trial.trialNumber + 1
 
         # Find the intensity / concentration we have actually prepared.
-        concentration_steps = gen_concentration_steps(modality)[substance]
+        concentration_steps = gen_concentration_steps(modality, substance)
 
         try:
             proposed_concentration = staircase_handler_.__next__()
@@ -682,7 +682,7 @@ def _init_quest_gustatory(metadata):
 
     sd = np.log10(20)
     max_trials = 20
-    concentration_steps = gen_concentration_steps(modality)[substance]
+    concentration_steps = gen_concentration_steps(modality, substance)
     range_ = 2 * np.abs(concentration_steps.max() - concentration_steps.min())
 
     q = QuestHandler(startVal=start_val,

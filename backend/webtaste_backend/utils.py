@@ -22,14 +22,17 @@ def find_nearest(a, a0):
     return a.flat[idx]
 
 
-def gen_concentration_steps(modality):
+def gen_concentration_steps(modality, substance):
     """
     Generate the concentration_steps for the used solutions, in log10 mol / L.
 
     Parameters
     ----------
-    modality : string
-        `gustatory` or `olfactory`.
+    modality : str
+        The modality, either `gustatory` or `olfactory`.
+
+    substance : str
+        The substance for which to generate the concentration steps.
 
     Returns
     -------
@@ -38,32 +41,35 @@ def gen_concentration_steps(modality):
 
     """
     if modality == 'gustatory':
-        sucrose_conc = np.log10(np.geomspace(20,
-                                             0.002510803515528001,
-                                             num=14))
-
-        citric_acid_conc = np.log10(np.geomspace(0.9,
-                                                 0.00029031200707790503,
-                                                 num=14))
-
-        sodium_chloride_conc = np.log10(np.geomspace(2,
-                                                     0.002,
-                                                     num=12))
-
-        quinine_conc = np.log10(np.geomspace(0.12255644907247643,
-                                             1.5000000000000004e-05,
-                                             num=18))
-
-        concentrations = {'sucrose': sucrose_conc,
-                          'citric acid': citric_acid_conc,
-                          'sodium chloride': sodium_chloride_conc,
-                          'quinine hydrochloride': quinine_conc}
+        if substance == 'sucrose':
+            return np.log10(np.geomspace(20,
+                                         0.002510803515528001,
+                                         num=14))
+        elif substance == 'citric acid':
+            return np.log10(np.geomspace(0.9,
+                                         0.00029031200707790503,
+                                         num=14))
+        elif substance == 'sodium chloride':
+            return np.log10(np.geomspace(2,
+                                         0.002,
+                                         num=12))
+        elif substance == 'quinine hydrochloride':
+            return np.log10(np.geomspace(0.12255644907247643,
+                                         1.5000000000000004e-05,
+                                         num=18))
+        else:
+            raise ValueError('Invalid substance specified.')
     elif modality == 'olfactory':
-        concentrations = {}
-    else:
-        raise ValueError('Please specify a valid modality.')
+        num = 4.0
+        denom = np.array([2 ** x for x in range(16)])
+        concentrations = num / denom
 
-    return concentrations
+        if (substance == '2-phenylethanol') or (substance == 'n-butanol'):
+            return concentrations
+        else:
+            raise ValueError('Invalid substance specified.')
+    else:
+        raise ValueError('Invalid modality specified.')
 
 
 def get_start_val(modality, substance):
@@ -83,16 +89,26 @@ def get_start_val(modality, substance):
         The starting concentration.
 
     """
-    c = gen_concentration_steps(modality)
+    c = gen_concentration_steps(modality, substance)
 
-    start_val = {
-        'sucrose': c['sucrose'][3],
-        'citric acid': c['citric acid'][3],
-        'sodium chloride': c['sodium chloride'][2],
-        'quinine hydrochloride': c['quinine hydrochloride'][7]
-    }
-
-    return start_val[substance]
+    if modality == 'gustatory':
+        if substance == 'sucrose':
+            return c[3]
+        elif substance == 'citric acid':
+            return c[3]
+        elif substance == 'sodium chloride':
+            return c[2]
+        elif substance == 'quinine hydrochloride':
+            return c[7]
+        else:
+            raise ValueError('Invalid substance specified.')
+    elif modality == 'olfactory':
+        if (substance == '2-phenylethanol') or (substance == 'n-butanol'):
+            return c[7]
+        else:
+            raise ValueError('Invalid substance specified.')
+    else:
+        raise ValueError('Invalid modality specified.')
 
 
 def get_sample_number(concentration_steps, concentration):
