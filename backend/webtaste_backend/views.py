@@ -694,37 +694,3 @@ def _init_quest_gustatory(exp_info):
                      extraInfo=exp_info)
 
     return q
-
-
-# def _get_next_quest_concentration_gustatory(quest_proposed_concentration,
-#                                             previous_concentration,
-#                                             previous_response_correct,
-#                                             modality,
-#                                             substance):
-#     # Find the intensity / concentration we have actually prepared
-#     concentration_steps = gen_concentration_steps(modality)[substance]
-#     next_concentration = find_nearest(concentration_steps,
-#                                       quest_proposed_concentration)
-#
-#     # If the concentration we selected is equal to the one previously presented ...
-#     if next_concentration == previous_concentration:
-#         idx_previous_conc = get_sample_number(concentration_steps,
-#                                               previous_concentration)
-#
-#         # ... and we got a correct response ...
-#         if previous_response_correct:
-#             # ... and we have not yet reached the lowest prepared concentration ...
-#             if idx_previous_conc < concentration_steps.size - 1:
-#                 # ... move to a lower concentration!
-#                 next_concentration = concentration_steps[idx_previous_conc + 1]
-#         # ... and we got an incorrect response ...
-#         else:
-#             # ... and we have not yet reached the highest prepared concentration ...
-#             if idx_previous_conc != 0:
-#                 # ... more up to a higher concentration!
-#                 next_concentration = concentration_steps[idx_previous_conc - 1]
-#
-#     next_jar = int(get_sample_number(concentration_steps,
-#                                      next_concentration) + 1)
-#
-#     return next_concentration, next_jar
