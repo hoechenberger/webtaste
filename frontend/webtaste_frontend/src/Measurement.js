@@ -111,7 +111,6 @@ class Measurement extends Component {
     measurementStarted: null,
     measurementFinished: null,
     trialsCompletedCount: 0,
-    concentration: null,
     concentrations: [],
     sampleNumber: null,
     threshold: null,
@@ -161,7 +160,6 @@ class Measurement extends Component {
       const json = await response.json();
       this.setState(prevState => ({
         sampleNumber: json.data.sampleNumber,
-        concentration: json.data.concentration,
         // https://stackoverflow.com/a/37002941/1944216
         concentrations: [...prevState.concentrations, json.data.concentration],
         currentTrialNumber: json.data.trialNumber,
