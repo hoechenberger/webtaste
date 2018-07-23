@@ -2,7 +2,6 @@
 
 import json_tricks
 from datetime import datetime
-from io import StringIO
 from flask import request, abort, Response, make_response
 from flask_restplus import Resource, marshal
 from psychopy.data import QuestHandler
@@ -10,6 +9,9 @@ from psychopy.data import QuestHandler
 import numpy as np
 import pandas as pd
 from io import BytesIO
+import xlsxwriter
+import tempfile
+import matplotlib.pyplot as plt
 
 from .app import api, db
 from . import models
@@ -504,6 +506,45 @@ class TrialsWithNumber(Resource):
             return response
 
 
+def _gen_quest_plot(participant, modality, substance, lateralization,
+                    method, session, concentrations, responses, threshold):
+    fig = plt.figure(figsize=(7, 6))
+    ax = fig.add_subplot(111)
+
+    concentrations = np.array(concentrations)
+    responses = np.array(responses
+    )
+    responses_yes_idx = np.where(responses == 'Yes')[0]
+    responses_no_idx = np.where(responses == 'No')[0]
+
+    ax.plot(np.arange(1, len(concentrations) + 1), concentrations, '--', lw=1,
+            dashes=(5, 10), color='black')
+    ax.plot(responses_yes_idx + 1, concentrations[responses_yes_idx], 'gv',
+            markersize=10, label='"yes" response')
+    ax.plot(responses_no_idx + 1, concentrations[responses_no_idx], 'r^',
+            markersize=10, label='"no" response')
+    ax.axhline(threshold, color='blue', lw=1.5, label='threshold estimate')
+    ax.set_xticks(np.arange(1, len(responses) + 1))
+    ax.set_xlim((0.5, len(responses) + 0.5))
+    ax.set_xlabel('Trial', fontsize=14)
+    ax.set_ylabel('Concentration in $\log_{10}}$ mol/L', fontsize=14)
+    ax.legend(loc='best')
+
+    t = (f'Threshold Estimation, Participant {participant}\n'
+         f'modality: {modality}, '
+         f'substance: {substance},\n'
+         f'lateralization: {lateralization}, '
+         f'method: {method}, '
+         f'session: {session}')
+
+    ax.set_title(t, fontsize=14)
+
+    f = BytesIO()
+    plt.savefig(f, format='png')
+    f.seek(0)
+    return f
+
+
 def _gen_quest_report_gustation(measurement):
     staircase_handler = json_tricks.loads(measurement.staircaseHandler.staircaseHandler)
 
@@ -564,8 +605,19 @@ def _gen_quest_report_gustation(measurement):
              Date=date_utc,
              Time_Zone=time_zone))
 
-    data_log.loc[data_log['responses'] == 0, 'responses'] = 'No'
-    data_log.loc[data_log['responses'] == 1, 'responses'] = 'Yes'
+    data_log.loc[data_log['Response'] == 0, 'Response'] = 'No'
+    data_log.loc[data_log['Response'] == 1, 'Response'] = 'Yes'
+
+    figure = _gen_quest_plot(participant=participant[0],
+                             modality=modality,
+                             substance=substance[0],
+                             lateralization=lateralization[0],
+                             method=method,
+                             session=session,
+                             concentrations=concentrations,
+                             responses=data_log['Response'].values,
+                             threshold=threshold)
+
 
     f = BytesIO()
     writer = pd.ExcelWriter(f, engine='xlsxwriter')
@@ -575,14 +627,25 @@ def _gen_quest_report_gustation(measurement):
     writer.save()
     f.seek(0)
 
+    # f = BytesIO()
+    # # tempfile_handle, tempfile_path = tempfile.mkstemp(suffix='.xlsx')
+    #
+    # data_threshold.to_excel(f, sheet_name='Threshold', index=False)
+    # data_log.to_excel(f, sheet_name='Log', index=False)
+    # workbook = xlsxwriter.Workbook(tempfile_path)
+    # worksheet = workbook.add_worksheet(name='Plot')
+    # worksheet.insert_image('B2', 'Threshold_Plot.png', {'image_data': figure})
+    # workbook.close()
+
     filename_base = (f'{participant[0]}_'
                      f'{modality[:4]}_'
+                     f'{substance[0].replace(" " , "-")}_'
                      f'{lateralization[0].split(" ")[0]}_'
                      f'{method}_'
                      f'{session[0]}')
 
-    filename = filename_base + '.xlsx'
-    return filename, f
+    filename_xlsx = filename_base + '.xlsx'
+    return filename_xlsx, f
 
 
 @api.route('/api/measurements/<int:measurement_id>/report')
@@ -599,14 +662,14 @@ class Report(Resource):
         if measurement is None:
             abort(404)
         else:
-            filename_csv, f = _gen_quest_report_gustation(measurement)
+            filename_xlsx, f = _gen_quest_report_gustation(measurement)
 
-            print(filename_csv)
+            print(filename_xlsx)
             r = Response(
                 f,
                 mimetype='text/csv',
                 headers={'Content-Disposition': f'attachment; '
-                                                f'filename={filename_csv}'})
+                                                f'filename={filename_xlsx}'})
 
             return r
 
