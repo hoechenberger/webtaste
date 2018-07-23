@@ -674,9 +674,9 @@ class Report(Resource):
             return r
 
 
-def _init_quest_gustatory(exp_info):
+def _init_quest_gustatory(metadata):
     modality = 'gustatory'
-    substance = exp_info['substance']
+    substance = metadata['substance']
 
     start_val = get_start_val(modality=modality, substance=substance)
 
@@ -691,6 +691,6 @@ def _init_quest_gustatory(exp_info):
                      pThreshold=0.82,
                      beta=3.5, gamma=0.01, delta=0.01, grain=0.01,
                      range=range_,
-                     extraInfo=exp_info)
+                     extraInfo=metadata)
 
     return q
