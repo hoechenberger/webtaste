@@ -317,6 +317,7 @@ class TrialsWithoutNumber(Resource):
             previous_trial = measurement.trials[-1]
 
             if previous_trial.response is None:
+                # Trial has not been updated with a response to far
                 abort(412)
 
             trial_number = previous_trial.trialNumber + 1
@@ -335,26 +336,41 @@ class TrialsWithoutNumber(Resource):
                                          proposed_concentration)
             sample_number = get_sample_number(concentration_steps, concentration)
 
-            # If the concentration we selected is equal to the one previously presented ...
-            if ((trial_number > 1) and
-                    (sample_number == previous_trial.sampleNumber)):
+            if (modality == 'gustatory'):
+                # If the concentration we selected is equal to the one previously presented ...
+                if ((trial_number > 1) and
+                        (sample_number == previous_trial.sampleNumber)):
 
-                # ... and we got a correct response ...
-                if previous_trial.responseCorrect:
-                    # ... and we have not yet reached the lowest prepared concentration ...
-                    if previous_trial.sampleNumber < len(concentration_steps):
-                        # ... move to a lower concentration!
-                        concentration = concentration_steps[previous_trial.sampleNumber]
-                        sample_number = get_sample_number(concentration_steps,
-                                                          concentration)
-                # ... and we got an incorrect response ...
-                else:
-                    # ... and we have not yet reached the highest prepared concentration ...
-                    if previous_trial.sampleNumber > 1:
-                        # ... more up to a higher concentration!
-                        concentration = concentration_steps[previous_trial.sampleNumber - 1]
-                        sample_number = get_sample_number(concentration_steps,
-                                                          concentration)
+                    # ... and we got a correct response ...
+                    if previous_trial.responseCorrect:
+                        # ... and we have not yet reached the lowest prepared concentration ...
+                        if previous_trial.sampleNumber < len(concentration_steps):
+                            # ... move to a lower concentration!
+                            concentration = concentration_steps[previous_trial.sampleNumber]
+                            sample_number = get_sample_number(concentration_steps,
+                                                              concentration)
+                    # ... and we got an incorrect response ...
+                    else:
+                        # ... and we have not yet reached the highest prepared concentration ...
+                        if previous_trial.sampleNumber > 1:
+                            # ... more up to a higher concentration!
+                            concentration = concentration_steps[previous_trial.sampleNumber - 1]
+                            sample_number = get_sample_number(concentration_steps,
+                                                              concentration)
+                elif modality == 'olfactory':
+                    if ((trial_number > 2) and
+                            (sample_number == measurement.trials[-1].sampleNumber) and
+                            (sample_number == measurement.trials[-2].sampleNumber)):
+                        if (measurement.trials[-1].responseCorrect and
+                                measurement.trials[-2].responseCorrect and
+                                sample_number < 16):
+                            sample_number += 1
+                            concentration = concentration_steps[sample_number - 1]
+                        if (not measurement.trials[-1].responseCorrect and
+                                not measurement.trials[-2].responseCorrect and
+                                sample_number > 1):
+                            sample_number -= 1
+                            concentration = concentration_steps[sample_number - 1]
 
             trial = models.Trial(trialNumber=trial_number,
                                  concentration=concentration,
@@ -648,6 +664,85 @@ def _gen_quest_report_gustation(measurement):
     return filename_xlsx, f
 
 
+def _gen_quest_report_olfactory(measurement):
+    staircase_handler = json_tricks.loads(measurement.staircaseHandler.staircaseHandler)
+
+    q = staircase_handler
+    responses = q.data
+
+    concentrations = q.otherData['Concentration']
+    concentration_unit = 'log10 mol/L'
+    jars = q.otherData['Sample_Number']
+    participant = measurement.metadata_.participant,
+    age = measurement.metadata_.age
+    gender = measurement.metadata_.gender,
+    substance =measurement.metadata_.substance,
+    lateralization = measurement.metadata_.lateralization,
+    session = measurement.metadata_.session,
+    trials = list(range(1, len(responses) + 1))
+    modality = 'olfactory'
+    method = 'QUEST'
+    comments = q.otherData.get('Comment', '')
+
+    dt_utc = datetime.strptime(measurement.metadata_.date,
+                               '%a, %d %b %Y %H:%M:%S %Z')
+    date_utc = dt_utc.strftime('%Y-%m-%d %H:%M:%S')
+    time_zone = 'GMT'
+
+    threshold = q.mean()
+    data_threshold = pd.DataFrame(
+        dict(
+            Participant=participant[0],
+            Age=age,
+            Gender=gender[0],
+            Modality=modality,
+            Substance=substance[0],
+            Lateralization=lateralization[0],
+            Method=method,
+            Session=session[0],
+            Threshold=threshold,
+            Threshold_Unit=concentration_unit,
+            Date=date_utc,
+            Time_Zone=time_zone),
+        index=[0])
+
+    data_log = pd.DataFrame(
+        dict(Participant=participant[0],
+             Age=age,
+             Gender=gender[0],
+             Modality=modality,
+             Substance=substance[0],
+             Lateralization=lateralization[0],
+             Method=method,
+             Session=session[0],
+             Trial=trials,
+             Jar=jars,
+             Concentration=concentrations,
+             Concentration_Unit=concentration_unit,
+             Response=responses,
+             Comment=comments,
+             Date=date_utc,
+             Time_Zone=time_zone))
+
+    f = BytesIO()
+    writer = pd.ExcelWriter(f, engine='xlsxwriter')
+    data_threshold.to_excel(writer, sheet_name='Threshold', index=False)
+    data_log.to_excel(writer, sheet_name='Log', index=False)
+
+    writer.save()
+    f.seek(0)
+
+    filename_base = (f'{participant[0]}_'
+                     f'{modality[:4]}_'
+                     f'{substance[0].replace(" " , "-")}_'
+                     f'{lateralization[0].split(" ")[0]}_'
+                     f'{method}_'
+                     f'{session[0]}')
+
+    filename_xlsx = filename_base + '.xlsx'
+    return filename_xlsx, f
+
+
 @api.route('/api/measurements/<int:measurement_id>/report')
 class Report(Resource):
     def get(self, measurement_id):
@@ -662,7 +757,14 @@ class Report(Resource):
         if measurement is None:
             abort(404)
         else:
-            filename_xlsx, f = _gen_quest_report_gustation(measurement)
+            modality = measurement.metadata_.modality
+            if modality == 'gustatory':
+                filename_xlsx, f = _gen_quest_report_gustation(measurement)
+            elif modality == 'olfactory':
+                filename_xlsx, f = _gen_quest_report_olfactory(measurement)
+            else:
+                raise ValueError('Invalid modality specified.')
+
 
             print(filename_xlsx)
             r = Response(
