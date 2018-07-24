@@ -116,6 +116,11 @@ class Measurement(db.Model):
                                 back_populates='measurement',
                                 cascade='all, delete, delete-orphan')
 
+    userId = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user = db.relationship('User', back_populates='measurements',
+                           uselist=False)
+
+
     def __repr__(self):
         return (f'Measurement(participant={self.participant}, '
                 f'age={self.age}, gender={self.gender})')
@@ -170,3 +175,30 @@ class StaircaseHandler(db.Model):
     measurement = db.relationship('Measurement',
                                   back_populates='staircaseHandler')
 
+
+class User(db.Model):
+    __tablename__ = 'users'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(length=30))
+    email = db.Column(db.String(length=100))
+    password = db.Column(db.String(length=100))
+    authenticated = db.Column(db.Boolean, default=False)
+
+    measurements = db.relationship('Measurement',
+                                   back_populates='user',
+                                   cascade='all, delete, delete-orphan')
+
+    def is_active(self):
+        """True, as all users are active."""
+        return True
+
+    def get_id(self):
+        return self.id
+
+    def is_authenticated(self):
+        return self.authenticated
+
+    def is_anonymous(self):
+        """False, as anonymous users aren't supported."""
+        return False
