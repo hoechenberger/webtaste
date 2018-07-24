@@ -24,9 +24,14 @@ class TrialPlot extends Component {
       // height: 400,
       autosize: true,
       title: 'Experimental Procedure',
-      xaxis: {title: 'Trial', zeroline: false, dtick: 1, fixedrange: true},
+      xaxis: {
+        title: 'Trial',
+        zeroline: false,
+        dtick: 1,
+        fixedrange: true},
       yaxis: {
-        title: 'Concentration in log10 mol/L', zeroline: false,
+        title: this.props.ylabel,
+        zeroline: false,
         fixedrange: true},
       margin: {l: 50, r: 50, t: 50, b: 50}
     };
@@ -106,6 +111,24 @@ class ConfirmRestartModal extends Component {
   }
 }
 
+
+class SniffinStick extends Component {
+  handleClick = () => {
+    this.props.onClick(this.props.index);
+  };
+
+  render () {
+    return (
+        <Button color={this.props.color}
+                className="btn-circle"
+                onClick={this.handleClick}
+                disabled={this.props.disabled}>
+          {this.props.sampleNumber}
+        </Button>
+    );
+  }
+}
+
 class Measurement extends Component {
   state = {
     measurementId: null,
@@ -114,6 +137,8 @@ class Measurement extends Component {
     trialsCompletedCount: 0,
     concentrations: [],
     sampleNumber: null,
+    stimulusOrder: null,
+    correctResponseIndex: null,
     threshold: null,
     showConfirmRestartModal: false,
     responseButtonsEnabled: false
@@ -137,6 +162,14 @@ class Measurement extends Component {
         })
   };
 
+  handleSniffinStickResponse = (penIndex) => {
+    this.setState({responseButtonsEnabled: false},
+        async () => {
+          await this.submitOlfactoryParticipantResponse(penIndex);
+          this.setState({responseButtonsEnabled: true});
+        })
+  };
+
   startMeasurement = async (metadata) => {
     const response = await fetch('/api/measurements/', {
       method: 'post',
@@ -156,7 +189,7 @@ class Measurement extends Component {
       measurementFinished: r.data.finished,
       trialsCompletedCount: 0,
       currentTrialNumber: null,
-      metadata: r.data.metadata
+      threshold: null
     });
 
     await this.createNewTrial();
@@ -179,6 +212,8 @@ class Measurement extends Component {
       const json = await response.json();
       this.setState(prevState => ({
         sampleNumber: json.data.sampleNumber,
+        stimulusOrder: json.data.stimulusOrder,
+        correctResponseIndex: json.data.correctResponseIndex,
         // https://stackoverflow.com/a/37002941/1944216
         concentrations: [...prevState.concentrations, json.data.concentration],
         currentTrialNumber: json.data.trialNumber,
@@ -188,6 +223,21 @@ class Measurement extends Component {
     } else {
       return false
     }
+  };
+
+  getThreshold = async () => {
+    const uri = '/api/measurements/' + this.state.measurementId;
+    const response = await fetch(uri, {
+      method: 'get',
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json'
+      },
+      credentials: 'same-origin'
+    });
+
+    const json = await response.json();
+    return json.data.threshold;
   };
 
   submitGustatoryParticipantResponse = async (participantResponse) => {
@@ -210,9 +260,43 @@ class Measurement extends Component {
 
     const newTrial = await this.createNewTrial();
     if (!newTrial) {
-      this.setState({measurementFinished: true})
+      const threshold = await this.getThreshold();
+      this.setState({
+        measurementFinished: true,
+        threshold: threshold
+      })
     }
   };
+
+  submitOlfactoryParticipantResponse = async (penIndex, ) => {
+    const uri = '/api/measurements/' + this.state.measurementId + '/trials/' + this.state.currentTrialNumber;
+    const responseCorrect = penIndex === this.state.correctResponseIndex;
+
+    const payload = {
+      response: String(penIndex),
+      responseCorrect: responseCorrect,
+    };
+
+    await fetch(uri, {
+      method: 'put',
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload),
+      credentials: 'same-origin'
+    });
+
+    const newTrial = await this.createNewTrial();
+    if (!newTrial) {
+      const threshold = await this.getThreshold();
+      this.setState({
+        measurementFinished: true,
+        threshold: threshold
+      })
+    }
+  };
+
 
   _deleteMeasurement = async () => {
     const uri = '/api/measurements/' + this.state.measurementId;
@@ -232,44 +316,131 @@ class Measurement extends Component {
     {showConfirmRestartModal: !this.state.showConfirmRestartModal}
   );
 
-  render () {
+  renderGustatoryButtons = () => {
     const buttons = !this.state.measurementFinished ? (
-      <div>
-        <ConfirmRestartModal show={this.state.showConfirmRestartModal}
-                             toggle={this.toggleConfirmRestartModal}
-                             onConfirm={this.abortMeasurement}
-                             header='Abort Measurement'
-                             body='Would you like to abort the current measurement?'
-                             confirmButtonText='Abort Measurement'/>
-
-      <strong>Please present jar {this.state.sampleNumber}. </strong><br />
-        Did the participant successfully recognize this concentration?<br /><br />
-        <Button color="success"
-                onClick={this.handleYesResponseButton}
-                disabled={!this.state.responseButtonsEnabled}>Yes</Button>{' '}
-        <Button color="danger"
-                onClick={this.handleNoResponseButton}
-                disabled={!this.state.responseButtonsEnabled}>No</Button>{' '}
-      </div>
+        <div>
+          <ConfirmRestartModal show={this.state.showConfirmRestartModal}
+                               toggle={this.toggleConfirmRestartModal}
+                               onConfirm={this.abortMeasurement}
+                               header='Abort Measurement'
+                               body='Would you like to abort the current measurement?'
+                               confirmButtonText='Abort Measurement'/>
+          <strong>Please present jar {this.state.sampleNumber}. </strong><br />
+          Did the participant successfully recognize this concentration?<br /><br />
+          <Button color="success"
+                  onClick={this.handleYesResponseButton}
+                  disabled={!this.state.responseButtonsEnabled}>Yes</Button>{' '}
+          <Button color="danger"
+                  onClick={this.handleNoResponseButton}
+                  disabled={!this.state.responseButtonsEnabled}>No</Button>{' '}
+        </div>
     ) : (
-      <div>
-        <ConfirmRestartModal show={this.state.showConfirmRestartModal}
-                             toggle={this.toggleConfirmRestartModal}
-                             onConfirm={this.props.onRestart}
-                             header='New Measurement'
-                             body='Would you like to start a new measurement?'
-                             confirmButtonText='New Measurement'/>
+        <div>
+          <ConfirmRestartModal show={this.state.showConfirmRestartModal}
+                               toggle={this.toggleConfirmRestartModal}
+                               onConfirm={this.props.onRestart}
+                               header='New Measurement'
+                               body='Would you like to start a new measurement?'
+                               confirmButtonText='New Measurement'/>
 
-        <strong>Measurement completed.</strong><br />
-        Threshold estimate: <strong>{this.state.threshold} log<sub>10</sub> mol/L</strong><br /><br />
-        <DownloadReportButton
-            measurementId={this.state.measurementId}
-        />{' '}
-        <Button color="danger"
-                onClick={this.toggleConfirmRestartModal}>New Measurement</Button>
-        {/*<ConfirmRestartModal open={this.state.showConfirmRestartModal}/>*/}
-      </div>
+          <strong>Measurement completed.</strong><br />
+          Threshold estimate: <strong>{this.state.threshold.toFixed(3)} {this.getThresholdUnit()}</strong><br /><br />
+          <DownloadReportButton
+              measurementId={this.state.measurementId}
+          />{' '}
+          <Button color="danger"
+                  onClick={this.toggleConfirmRestartModal}>New Measurement</Button>
+          {/*<ConfirmRestartModal open={this.state.showConfirmRestartModal}/>*/}
+        </div>
     );
+
+    return buttons;
+  };
+
+  _genOlfactoryButtons = () => {
+    const stimulusOrder = this.state.stimulusOrder;
+
+    const buttons = stimulusOrder.map((stim, idx) => {
+      let color;
+
+      if (stim === "red") {
+        color = "danger";
+      } else if (stim === "green") {
+        color = "success";
+      } else if (stim === "blue") {
+        color = "primary"
+      }
+      return (
+          <span key={idx}>
+            <SniffinStick
+              onClick={this.handleSniffinStickResponse}
+              color={color}
+              sampleNumber={this.state.sampleNumber}
+              index={idx}
+              disabled={!this.state.responseButtonsEnabled}
+            />{' '}
+          </span>
+      );
+    });
+
+    return buttons;
+  };
+
+  getThresholdUnit = () => {
+    if (this.props.metadata.modality === "gustatory") {
+      return <span>log<sub>10</sub> mol/L</span>
+    } else {
+      return <span>log<sub>10</sub> %</span>
+    }
+  };
+
+  renderOlfactoryButtons = () => {
+    const buttons = !this.state.measurementFinished ? (
+        <div>
+          <ConfirmRestartModal show={this.state.showConfirmRestartModal}
+                               toggle={this.toggleConfirmRestartModal}
+                               onConfirm={this.abortMeasurement}
+                               header='Abort Measurement'
+                               body='Would you like to abort the current measurement?'
+                               confirmButtonText='Abort Measurement'/>
+          <strong>Please present triade number {this.state.sampleNumber} in the displayed order. </strong><br />
+          Which Sniffin' Stick did the participant identify?<br /><br />
+
+          {this.state.stimulusOrder ? this._genOlfactoryButtons() : null}
+        </div>
+    ) : (
+        <div>
+          <ConfirmRestartModal show={this.state.showConfirmRestartModal}
+                               toggle={this.toggleConfirmRestartModal}
+                               onConfirm={this.props.onRestart}
+                               header='New Measurement'
+                               body='Would you like to start a new measurement?'
+                               confirmButtonText='New Measurement'/>
+
+          <strong>Measurement completed.</strong><br />
+          Threshold estimate: <strong>{this.state.threshold.toFixed(3)} {this.getThresholdUnit()}</strong><br /><br />
+          <DownloadReportButton
+              measurementId={this.state.measurementId}
+          />{' '}
+          <Button color="danger"
+                  onClick={this.toggleConfirmRestartModal}>New Measurement</Button>
+          {/*<ConfirmRestartModal open={this.state.showConfirmRestartModal}/>*/}
+        </div>
+    );
+
+    return buttons;
+  };
+
+
+
+  render () {
+    let buttons;
+
+    if (this.props.metadata.modality === "gustatory") {
+      buttons = this.renderGustatoryButtons()
+    } else {
+      buttons = this.renderOlfactoryButtons();
+    }
 
     return (
       <div>
@@ -293,7 +464,16 @@ class Measurement extends Component {
 
         </div>
         <div>
-          <TrialPlot concentrations={this.state.concentrations }/>
+          {this.props.metadata.modality === "gustatory" ? (
+              <TrialPlot
+                  concentrations={this.state.concentrations}
+                  ylabel='Concentration in log10 mol/L'
+              />
+          ) : (
+              <TrialPlot
+                  concentrations={this.state.concentrations}
+                  ylabel='Concentration in log10 %'
+              />)}
         </div>
         {!this.state.measurementFinished ?
           <div className='abort-button'>

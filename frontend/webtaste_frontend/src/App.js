@@ -62,10 +62,22 @@ class App extends Component {
     }
   };
 
+  genTitle = () => {
+    if (Object.keys(this.state.metadata).length > 0) {
+      if (this.state.metadata.modality === 'gustatory') {
+        return 'Gustatory Threshold Estimation'
+      } else if (this.state.metadata.modality === 'olfactory') {
+        return 'Olfactory Threshold Estimation'
+      }
+    } else {
+      return 'Threshold Estimation'
+    }
+  };
+
   render() {
     return (
       <div className="app">
-        <h2>Threshold Estimation</h2>
+        <h2>{this.genTitle()}</h2>
         {this.renderMainView()}
       </div>
     )

@@ -31,7 +31,7 @@ class AlgorithmInput extends Component {
                  required>
             <option disabled value="" hidden>– select –</option>
             <option>QUEST</option>
-            <option>Hummel</option>
+            {/*<option>Hummel</option>*/}
           </Input>
       )
     }
@@ -218,7 +218,9 @@ class Startup extends Component {
   render () {
     return (
       <div>
-        <Form onSubmit={this.handleSubmit} className='measurement-info-form'>
+        <Form method="post"
+            onSubmit={this.handleSubmit}
+            className="measurement-info-form">
           <Card className="participant-info-card">
             <CardHeader onClick={this.toggleParticipantInfoCard}>
                 Participant Info
@@ -325,7 +327,9 @@ class Startup extends Component {
                 </FormGroup>
 
                 <FormGroup>
-                  <Label for="lateralization">Lateralization</Label>
+                  <Label for="lateralization" className="input-label-required">
+                    Lateralization
+                  </Label>
                   <Tooltip text={"Whether to test on both sides (bilateral testing) or on only " +
                                  "one side (unilateral testing)."}
                            id="tooltip-lateralization"/>
@@ -333,7 +337,7 @@ class Startup extends Component {
                          value={this.state.lateralization}
                          onChange={this.handleLateralizationChange}
                          required>
-                    {/*<option disabled value="" hidden>– select –</option>*/}
+                    <option disabled value="" hidden>– select –</option>
                     <option>both sides</option>
                     <option>left side</option>
                     <option>right side</option>

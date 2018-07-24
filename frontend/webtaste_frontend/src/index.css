@@ -96,3 +96,14 @@ body {
   content: '*';
   color: red;
 }
+
+
+.btn-circle {
+  font-size: xx-large;
+  width: 75px;
+  height: 75px;
+  line-height: 75px; /* adjust line height to align vertically*/
+  padding:0;
+  margin: 0 0.25em 0 0.25em;
+  border-radius: 50%;
+}

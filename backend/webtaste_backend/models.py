@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from flask_restplus.fields import String, Integer, Float, Boolean, Nested
+from flask_restplus.fields import String, Integer, Float, Boolean, Nested, List
 from .app import api, db, login_manager
 from .constants import SUBSTANCES
 
@@ -48,6 +48,8 @@ trial_server_response = api.model('Trial', {
                            required=True),
     'sampleNumber': Integer(description='The number of the stimulus sample',
                             required=True),
+    'stimulusOrder': String(description='Stimulus order'),
+    'correctResponseIndex': Integer(description='Index of the correct response'),
     'response': String(description='The given response', required=True),
     'responseCorrect': Boolean(description='Whether the participant gave the'
                                            'correct response',
@@ -69,7 +71,8 @@ measurement = api.model('Measurement', {
     'currentTrialNumber': Integer(description='Number of the current trial',
                                   required=True),
     'trials': Nested(trial),
-    'metadata': Nested(measurement_metadata, attribute='metadata_')
+    'metadata': Nested(measurement_metadata, attribute='metadata_'),
+    'threshold': Float(description='The estimated threshold')
 })
 
 
@@ -108,13 +111,15 @@ class Measurement(db.Model):
                                 back_populates='measurement',
                                 cascade='all, delete, delete-orphan')
 
+    threshold = db.Column(db.Float)
+
     userId = db.Column(db.Integer, db.ForeignKey('users.id'))
     user = db.relationship('User', back_populates='measurements',
                            uselist=False)
 
-    def __repr__(self):
-        return (f'Measurement(participant={self.participant}, '
-                f'age={self.age}, gender={self.gender})')
+    # def __repr__(self):
+    #     return (f'Measurement(participant={self.participant}, '
+    #             f'age={self.age}, gender={self.gender})')
 
 
 class MeasurementMetadata(db.Model):
@@ -143,6 +148,8 @@ class Trial(db.Model):
     trialNumber = db.Column(db.Integer, default=1)
     concentration = db.Column(db.Float)
     sampleNumber = db.Column(db.Integer)
+    stimulusOrder = db.Column(db.String(length=100))
+    correctResponseIndex = db.Column(db.Integer)
     response = db.Column(db.String(length=30))
     responseCorrect = db.Column(db.Boolean)
 

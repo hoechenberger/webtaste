@@ -7,6 +7,7 @@ from flask_restplus import Resource, marshal
 from flask_login import login_required, login_user, logout_user, current_user
 from passlib.hash import pbkdf2_sha256
 from psychopy.data import QuestHandler
+import random
 
 import numpy as np
 import pandas as pd
@@ -419,9 +420,9 @@ class TrialsWithoutNumber(Resource):
         try:
             proposed_concentration = staircase_handler_.__next__()
             finished = False
-            print(10**proposed_concentration)
         except StopIteration:
             finished = True
+            threshold = staircase_handler_.mean()
 
         if not finished:
             concentration = find_nearest(concentration_steps,
@@ -429,6 +430,9 @@ class TrialsWithoutNumber(Resource):
             sample_number = get_sample_number(concentration_steps, concentration)
 
             if (modality == 'gustatory'):
+                stimulus_order = []
+                correct_response_index = None
+
                 # If the concentration we selected is equal to the one previously presented ...
                 if ((trial_number > 1) and
                         (sample_number == previous_trial.sampleNumber)):
@@ -449,28 +453,37 @@ class TrialsWithoutNumber(Resource):
                             concentration = concentration_steps[previous_trial.sampleNumber - 1]
                             sample_number = get_sample_number(concentration_steps,
                                                               concentration)
-                elif modality == 'olfactory':
-                    if ((trial_number > 2) and
-                            (sample_number == measurement.trials[-1].sampleNumber) and
-                            (sample_number == measurement.trials[-2].sampleNumber)):
-                        if (measurement.trials[-1].responseCorrect and
-                                measurement.trials[-2].responseCorrect and
-                                sample_number < 16):
-                            sample_number += 1
-                            concentration = concentration_steps[sample_number - 1]
-                        if (not measurement.trials[-1].responseCorrect and
-                                not measurement.trials[-2].responseCorrect and
-                                sample_number > 1):
-                            sample_number -= 1
-                            concentration = concentration_steps[sample_number - 1]
+            elif modality == 'olfactory':
+                stimulus_order = ['red', 'green', 'blue']
+                random.shuffle(stimulus_order)
+                correct_response_index = stimulus_order.index('red')
+
+                if ((trial_number > 2) and
+                        (sample_number == measurement.trials[-1].sampleNumber) and
+                        (sample_number == measurement.trials[-2].sampleNumber)):
+                    if (measurement.trials[-1].responseCorrect and
+                            measurement.trials[-2].responseCorrect and
+                            sample_number < 16):
+                        sample_number += 1
+                        concentration = concentration_steps[sample_number - 1]
+                    if (not measurement.trials[-1].responseCorrect and
+                            not measurement.trials[-2].responseCorrect and
+                            sample_number > 1):
+                        sample_number -= 1
+                        concentration = concentration_steps[sample_number - 1]
 
             trial = models.Trial(trialNumber=trial_number,
                                  concentration=concentration,
-                                 sampleNumber=sample_number)
+                                 sampleNumber=sample_number,
+                                 stimulusOrder=json_tricks.dumps(stimulus_order),
+                                 correctResponseIndex=correct_response_index)
+
             trial.measurement = measurement
 
             staircase_handler_.addOtherData('Concentration', concentration)
             staircase_handler_.addOtherData('Sample_Number', sample_number)
+            staircase_handler_.addOtherData('Stimulus_Order', stimulus_order)
+
 
             staircase_handler.staircaseHandler = json_tricks.dumps(staircase_handler_)
             measurement.currentTrialNumber = trial_number
@@ -479,6 +492,8 @@ class TrialsWithoutNumber(Resource):
             db.session.commit()
 
             data = marshal(trial, models.trial_server_response)
+            data['stimulusOrder'] = json_tricks.loads(data['stimulusOrder'])
+
             data['links'] = {
                 'measurements': f'/api/measurements/',
                 'measurement': f'/api/measurements/{measurement_id}/',
@@ -489,6 +504,7 @@ class TrialsWithoutNumber(Resource):
             response = {'data': data}
             return response, 201, {'Location': data['links']['self']}
         else:
+            measurement.threshold = threshold
             measurement.finished = True
             db.session.add(measurement)
             db.session.commit()
@@ -516,6 +532,7 @@ class TrialsWithNumber(Resource):
             abort(404)
         else:
             data = marshal(trial, models.trial_server_response)
+            data['stimulusOrder'] = json_tricks.loads(data['stimulusOrder'])
 
             data['links'] = {
                 'measurements': f'/api/measurements/',
@@ -564,7 +581,8 @@ class TrialsWithNumber(Resource):
             trial.responseCorrect = payload['responseCorrect']
             trial.response = payload['response']
 
-            staircase_handler_.addResponse(int(payload['responseCorrect']))
+            staircase_handler_.addResponse(int(payload['responseCorrect']),
+                                           intensity=trial.concentration)
             staircase_handler_.addOtherData('Response', payload['response'])
             staircase_handler.staircaseHandler = json_tricks.dumps(staircase_handler_)
 
@@ -572,6 +590,7 @@ class TrialsWithNumber(Resource):
             db.session.commit()
 
             data = marshal(trial, models.trial_server_response)
+            data['stimulusOrder'] = json_tricks.loads(data['stimulusOrder'])
 
             data['links'] = {
                 'measurements': f'/api/measurements/',
@@ -766,12 +785,13 @@ def _gen_quest_report_olfactory(measurement):
     responses = q.data
 
     concentrations = q.otherData['Concentration']
-    concentration_unit = 'log10 mol/L'
-    jars = q.otherData['Sample_Number']
+    concentration_unit = 'log10 %'
+    triade_no = q.otherData['Sample_Number']
+    stimulus_order = q.otherData['Stimulus_Order']
     participant = measurement.metadata_.participant,
     age = measurement.metadata_.age
     gender = measurement.metadata_.gender,
-    substance =measurement.metadata_.substance,
+    substance = measurement.metadata_.substance,
     lateralization = measurement.metadata_.lateralization,
     session = measurement.metadata_.session,
     trials = list(range(1, len(responses) + 1))
@@ -811,7 +831,8 @@ def _gen_quest_report_olfactory(measurement):
              Method=method,
              Session=session[0],
              Trial=trials,
-             Jar=jars,
+             Triade_Number=triade_no,
+             Stimulus_Order=stimulus_order,
              Concentration=concentrations,
              Concentration_Unit=concentration_unit,
              Response=responses,
