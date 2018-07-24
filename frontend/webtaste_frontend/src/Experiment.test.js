@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { TrialPlot, DownloadReportButtton,
-  ConfirmRestartModal, Experiment } from './Experiment';
+  ConfirmRestartModal, Measurement } from './Measurement';
 
 it('renders without crashing', () => {
   const div = document.createElement('div');
@@ -23,6 +23,6 @@ it('renders without crashing', () => {
 
 it('renders without crashing', () => {
   const div = document.createElement('div');
-  ReactDOM.render(<Experiment />, div);
+  ReactDOM.render(<Measurement />, div);
   ReactDOM.unmountComponentAtNode(div);
 });

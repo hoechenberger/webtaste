@@ -40,7 +40,7 @@ body {
 .app {
 }
 
-.exp-info-form {
+.measurement-info-form {
   width: 70%;
   min-width: 300px;
   max-width: 450px;
@@ -57,7 +57,9 @@ body {
 }
 
 .participant-info-card,
-.exp-settings-card {
+.measurement-settings-card,
+.login-card,
+.register-card {
   margin: 2em 0 0 0;
 }
 
@@ -66,7 +68,9 @@ body {
 }
 
 .participant-info-card .card-header,
-.exp-settings-card .card-header {
+.measurement-settings-card .card-header,
+.login-card .card-header,
+.register-card .card-header {
   text-align: center;
   font-weight: bold;
   cursor: pointer;
@@ -86,4 +90,20 @@ body {
 
 .tooltip-element:before {
   content: '?';
+}
+
+.input-label-required:after {
+  content: '*';
+  color: red;
+}
+
+
+.btn-circle {
+  font-size: xx-large;
+  width: 75px;
+  height: 75px;
+  line-height: 75px; /* adjust line height to align vertically*/
+  padding:0;
+  margin: 0 0.25em 0 0.25em;
+  border-radius: 50%;
 }

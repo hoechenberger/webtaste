@@ -1,0 +1,16 @@
+FROM continuumio/miniconda3:latest
+
+RUN conda update -y -n base conda
+RUN conda install -y numpy scipy pandas openpyxl configobj future flask
+RUN pip install json-tricks flask_restplus
+RUN pip install --no-deps psychopy
+
+COPY . .
+WORKDIR webtaste_backend
+
+EXPOSE 5000
+
+#ENTRYPOINT [ "/bin/bash", "-c" ]
+CMD ["flask", "run", "--host=0.0.0.0"]
+#CMD ["/bin/bash"]
+
