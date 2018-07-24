@@ -1,5 +1,7 @@
 flask
 flask_restplus
+flask-login
+passlib
 mysqlclient
 xlsxwriter
 

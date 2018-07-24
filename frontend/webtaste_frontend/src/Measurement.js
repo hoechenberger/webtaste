@@ -49,7 +49,8 @@ class DownloadReportButton extends Component {
       headers: {
         'Accept': 'application/json, text/plain, */*',
         'Content-Type': 'application/json'
-      }
+      },
+      credentials: 'same-origin'
     });
 
     return response;
@@ -123,7 +124,7 @@ class Measurement extends Component {
   handleYesResponseButton = () => {
     this.setState({responseButtonsEnabled: false},
         async () => {
-          await this.submitParticipantResponse(true);
+          await this.submitGustatoryParticipantResponse(true);
           this.setState({responseButtonsEnabled: true});
         })
   };
@@ -131,7 +132,7 @@ class Measurement extends Component {
   handleNoResponseButton = () => {
     this.setState({responseButtonsEnabled: false},
         async () => {
-          await this.submitParticipantResponse(false);
+          await this.submitGustatoryParticipantResponse(false);
           this.setState({responseButtonsEnabled: true});
         })
   };
@@ -143,7 +144,8 @@ class Measurement extends Component {
         'Accept': 'application/json, text/plain, */*',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(metadata)
+      body: JSON.stringify(metadata),
+      credentials: 'same-origin'
     });
 
     const r = await response.json();
@@ -169,7 +171,8 @@ class Measurement extends Component {
         'Accept': 'application/json, text/plain, */*',
         'Content-Type': 'application/json'
       },
-      body: {}
+      body: {},
+      credentials: 'same-origin'
     });
 
     if (response.status === 201) {
@@ -187,7 +190,7 @@ class Measurement extends Component {
     }
   };
 
-  submitParticipantResponse = async (participantResponse) => {
+  submitGustatoryParticipantResponse = async (participantResponse) => {
     const uri = '/api/measurements/' + this.state.measurementId + '/trials/' + this.state.currentTrialNumber;
 
     const payload = {
@@ -201,7 +204,8 @@ class Measurement extends Component {
         'Accept': 'application/json, text/plain, */*',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      credentials: 'same-origin'
     });
 
     const newTrial = await this.createNewTrial();
@@ -215,6 +219,7 @@ class Measurement extends Component {
 
     await fetch(uri, {
       method: 'delete',
+      credentials: 'same-origin'
     })
   };
 

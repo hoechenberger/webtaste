@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-from flask_restplus.fields import String, Integer, Float, Boolean, DateTime, Nested
-from .app import api, db
+from flask_restplus.fields import String, Integer, Float, Boolean, Nested
+from .app import api, db, login_manager
 from .constants import SUBSTANCES
 
 
@@ -73,6 +73,18 @@ measurement = api.model('Measurement', {
 })
 
 
+user_registration = api.model('User Registration', {
+    'user': String(description='User name', required=True),
+    'email': String(description='Email address', required=True),
+    'password': String(description='Password', required=True)
+})
+
+user_login = api.model('User Login', {
+    'user': String(description='User name', required=True),
+    'password': String(description='Password', required=True)
+})
+
+
 class Measurement(db.Model):
     __tablename__ = 'measurements'
 
@@ -99,7 +111,6 @@ class Measurement(db.Model):
     userId = db.Column(db.Integer, db.ForeignKey('users.id'))
     user = db.relationship('User', back_populates='measurements',
                            uselist=False)
-
 
     def __repr__(self):
         return (f'Measurement(participant={self.participant}, '
@@ -164,6 +175,8 @@ class User(db.Model):
     email = db.Column(db.String(length=100))
     password = db.Column(db.String(length=100))
     authenticated = db.Column(db.Boolean, default=False)
+    registrationDateUtc = db.Column(db.DateTime)
+    lastLoginDateUtc = db.Column(db.DateTime)
 
     measurements = db.relationship('Measurement',
                                    back_populates='user',
@@ -174,7 +187,8 @@ class User(db.Model):
         return True
 
     def get_id(self):
-        return self.id
+        # We MUST return a unicode object.
+        return str(self.id)
 
     def is_authenticated(self):
         return self.authenticated
@@ -182,3 +196,16 @@ class User(db.Model):
     def is_anonymous(self):
         """False, as anonymous users aren't supported."""
         return False
+
+
+@login_manager.user_loader
+def user_loader(user_id):
+    user_id = int(user_id)  # It will be passed in as unicode
+
+    mask = User.id == user_id
+    user = (User
+            .query
+            .filter(mask)
+            .first())
+
+    return user

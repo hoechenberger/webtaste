@@ -4,6 +4,8 @@ import json_tricks
 from datetime import datetime
 from flask import request, abort, Response, make_response
 from flask_restplus import Resource, marshal
+from flask_login import login_required, login_user, logout_user, current_user
+from passlib.hash import pbkdf2_sha256
 from psychopy.data import QuestHandler
 
 import numpy as np
@@ -24,15 +26,99 @@ class Api(Resource):
     def get(self):
         endpoints = {
             'links': {
+                'registration': '/api/register',
+                'login': '/api/login',
                 'measurements': '/api/measurements/',
             }
         }
 
         return endpoints
 
+@api.route('/api/user/register')
+class Register(Resource):
+    @api.expect(models.user_registration)
+    def post(self):
+        payload = request.json
+        models.user_registration.validate(payload)
+
+        username = payload['user']
+        password = payload['password']
+        email = payload['email']
+
+        mask = models.User.name == username
+        existing_user = (models.User
+                         .query
+                         .filter(mask)
+                         .first())
+
+        if existing_user is not None:
+            return f'User {username} already exists.', 409
+
+        password_hash = pbkdf2_sha256.hash(password)
+        del password
+        del payload['password']
+
+        registration_date = datetime.utcnow()
+        user = models.User(name=username,
+                           password=password_hash,
+                           email=email,
+                           registrationDateUtc=registration_date)
+
+        db.session.add(user)
+        db.session.commit()
+
+        return f'User {username} was created.', 201
+
+
+@api.route('/api/user/login')
+class Login(Resource):
+    @api.expect(models.user_login)
+    def post(self):
+        payload = request.json
+        models.user_login.validate(payload)
+
+        username = payload['user']
+        password = payload['password']
+
+        mask = models.User.name == username
+        user = (models.User
+                .query
+                .filter(mask)
+                .first())
+
+        if user is None:
+            return 'Login failed.', 403
+        else:
+            if pbkdf2_sha256.verify(password, user.password):
+                last_login_date = datetime.utcnow()
+
+                user.authenticated = True
+                user.lastLoginDateUtc = last_login_date
+                db.session.add(user)
+                db.session.commit()
+
+                login_user(user, remember=True)
+                return f'User {username} was successfully logged in.', 200
+            else:
+                return 'Login failed.', 403
+
+
+@api.route('/api/user/logout')
+class Logout(Resource):
+    @login_required
+    def get(self):
+        user = current_user
+        user_name = user.name
+        user.authenticated = False
+        db.session.add(user)
+        db.session.commit()
+        logout_user()
+        return f'User {user_name} successfully logged out.', 200
+
 
 @api.route('/api/measurements/')
 class MeasurementWithoutIdApi(Resource):
+    @login_required
     def get(self):
         """Retrieve an array of running staircases.
         """
@@ -57,6 +143,7 @@ class MeasurementWithoutIdApi(Resource):
 
     @api.expect(models.measurement_metadata)
     @api.doc(responses={201: 'Created'})
+    @login_required
     def post(self):
         """Create new staircase.
         """
@@ -133,6 +220,7 @@ class MeasurementWithoutIdApi(Resource):
 class MeasurementWithIdApi(Resource):
     @api.doc(responses={200: 'Success',
                         404: 'Resource not found'})
+    @login_required
     def get(self, measurement_id):
         """Retrieve information about a running staircase.
         """
@@ -157,6 +245,7 @@ class MeasurementWithIdApi(Resource):
 
     @api.doc(responses={200: 'Success',
                         404: 'Resource not found'})
+    @login_required
     def delete(self, measurement_id):
         """Delete a running staircase.
         """
@@ -246,6 +335,7 @@ class MeasurementWithIdApi(Resource):
 class TrialsWithoutNumber(Resource):
     @api.doc(responses={200: 'Success',
                         404: 'Resource not found'})
+    @login_required
     def get(self, measurement_id):
         """Retrieve all trials in a measurement.
         """
@@ -294,6 +384,7 @@ class TrialsWithoutNumber(Resource):
                         204: 'No content',
                         404: 'Resource not found',
                         412: 'Precondition failed'})
+    @login_required
     def post(self, measurement_id):
         """Create a new trial.
         """
@@ -328,6 +419,7 @@ class TrialsWithoutNumber(Resource):
         try:
             proposed_concentration = staircase_handler_.__next__()
             finished = False
+            print(10**proposed_concentration)
         except StopIteration:
             finished = True
 
@@ -410,6 +502,7 @@ class TrialsWithoutNumber(Resource):
 class TrialsWithNumber(Resource):
     @api.doc(responses={200: 'Success',
                         404: 'Resource not found'})
+    @login_required
     def get(self, measurement_id, trial_number):
         """Retrieve a specific trial.
         """
@@ -438,6 +531,7 @@ class TrialsWithNumber(Resource):
     @api.doc(responses={200: 'Success',
                         405: 'Method Not Allowed',
                         404: 'Resource not found'})
+    @login_required
     def put(self, measurement_id, trial_number):
         """Add a response.
         """
@@ -495,6 +589,7 @@ class TrialsWithNumber(Resource):
 class TrialsWithNumber(Resource):
     @api.doc(responses={200: 'Success',
                         404: 'Resource not found'})
+    @login_required
     def get(self, measurement_id):
         """Retrieve the current trial.
         """
