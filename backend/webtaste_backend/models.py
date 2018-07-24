@@ -5,26 +5,6 @@ from .app import api, db
 from .constants import SUBSTANCES
 
 
-# quest_handler = api.model('QuestHandler', {
-#     # 'staircaseHandler': fields.Raw(description='QuestHandler Object',
-#     #                            required=True)
-# })
-
-
-# response_update = api.model('Response Update', {
-#     # 'staircaseHandler': fields.Raw(description='QuestHandler Object',
-#     #                            required=True),
-#     'modality': String(description='Modality', required=True,
-#                        enum=['gustatory', 'olfactory']),
-#     'algorithm': String(description='Algorithm', required=True,
-#                         enum=['QUEST', 'Hummel']),
-#     'concentration': Float(description='Intensity', required=True),
-#     'responseCorrect': Boolean(description='Response Correct',
-#                                required=True),
-#     'comment': String(description='Comment', required=False)
-# })
-
-
 measurement_metadata = api.model('Measurement Metadata', {
     'participant': String(description='Participant ID',
                           required=True, example='subj-123'),
