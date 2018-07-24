@@ -12,8 +12,6 @@ import random
 import numpy as np
 import pandas as pd
 from io import BytesIO
-import xlsxwriter
-import tempfile
 import matplotlib.pyplot as plt
 
 from .app import api, db
@@ -636,14 +634,14 @@ class TrialsWithNumber(Resource):
             return response
 
 
-def _gen_quest_plot(participant, modality, substance, lateralization,
-                    method, session, concentrations, responses, threshold):
+def _gen_quest_plot_gustatory(participant, modality, substance, lateralization,
+                              method, session, concentrations, responses,
+                              threshold):
     fig = plt.figure(figsize=(7, 6))
     ax = fig.add_subplot(111)
 
     concentrations = np.array(concentrations)
-    responses = np.array(responses
-    )
+    responses = np.array(responses)
     responses_yes_idx = np.where(responses == 'Yes')[0]
     responses_no_idx = np.where(responses == 'No')[0]
 
@@ -658,6 +656,45 @@ def _gen_quest_plot(participant, modality, substance, lateralization,
     ax.set_xlim((0.5, len(responses) + 0.5))
     ax.set_xlabel('Trial', fontsize=14)
     ax.set_ylabel('Concentration in $\log_{10}}$ mol/L', fontsize=14)
+    ax.legend(loc='best')
+
+    t = (f'Threshold Estimation, Participant {participant}\n'
+         f'modality: {modality}, '
+         f'substance: {substance},\n'
+         f'lateralization: {lateralization}, '
+         f'method: {method}, '
+         f'session: {session}')
+
+    ax.set_title(t, fontsize=14)
+
+    f = BytesIO()
+    plt.savefig(f, format='png')
+    f.seek(0)
+    return f
+
+
+def _gen_quest_plot_olfactory(participant, modality, substance, lateralization,
+                              method, session, concentrations, responses,
+                              threshold):
+    fig = plt.figure(figsize=(7, 6))
+    ax = fig.add_subplot(111)
+
+    concentrations = np.array(concentrations)
+    responses = np.array(responses)
+    responses_correct_idx = np.where(responses == True)[0]
+    responses_incorrect_idx = np.where(responses == False)[0]
+
+    ax.plot(np.arange(1, len(concentrations) + 1), concentrations, '--', lw=1,
+            dashes=(5, 10), color='black')
+    ax.plot(responses_correct_idx + 1, concentrations[responses_correct_idx], 'gv',
+            markersize=10, label='correct response')
+    ax.plot(responses_incorrect_idx + 1, concentrations[responses_incorrect_idx], 'r^',
+            markersize=10, label='incorrect response')
+    ax.axhline(threshold, color='blue', lw=1.5, label='threshold estimate')
+    ax.set_xticks(np.arange(1, len(responses) + 1))
+    ax.set_xlim((0.5, len(responses) + 0.5))
+    ax.set_xlabel('Trial', fontsize=14)
+    ax.set_ylabel('Concentration in $\log_{10}}$ %', fontsize=14)
     ax.legend(loc='best')
 
     t = (f'Threshold Estimation, Participant {participant}\n'
@@ -738,34 +775,26 @@ def _gen_quest_report_gustation(measurement):
     data_log.loc[data_log['Response'] == 0, 'Response'] = 'No'
     data_log.loc[data_log['Response'] == 1, 'Response'] = 'Yes'
 
-    figure = _gen_quest_plot(participant=participant[0],
-                             modality=modality,
-                             substance=substance[0],
-                             lateralization=lateralization[0],
-                             method=method,
-                             session=session,
-                             concentrations=concentrations,
-                             responses=data_log['Response'].values,
-                             threshold=threshold)
-
+    figure = _gen_quest_plot_gustatory(participant=participant[0],
+                                       modality=modality,
+                                       substance=substance[0],
+                                       lateralization=lateralization[0],
+                                       method=method,
+                                       session=session[0],
+                                       concentrations=concentrations,
+                                       responses=data_log['Response'].values,
+                                       threshold=threshold)
 
     f = BytesIO()
     writer = pd.ExcelWriter(f, engine='xlsxwriter')
     data_threshold.to_excel(writer, sheet_name='Threshold', index=False)
     data_log.to_excel(writer, sheet_name='Log', index=False)
 
+    s = writer.sheets['Threshold']
+    s.insert_image('B7', 'Threshold_Plot.png', {'image_data': figure})
+
     writer.save()
     f.seek(0)
-
-    # f = BytesIO()
-    # # tempfile_handle, tempfile_path = tempfile.mkstemp(suffix='.xlsx')
-    #
-    # data_threshold.to_excel(f, sheet_name='Threshold', index=False)
-    # data_log.to_excel(f, sheet_name='Log', index=False)
-    # workbook = xlsxwriter.Workbook(tempfile_path)
-    # worksheet = workbook.add_worksheet(name='Plot')
-    # worksheet.insert_image('B2', 'Threshold_Plot.png', {'image_data': figure})
-    # workbook.close()
 
     filename_base = (f'{participant[0]}_'
                      f'{modality[:4]}_'
@@ -782,7 +811,8 @@ def _gen_quest_report_olfactory(measurement):
     staircase_handler = json_tricks.loads(measurement.staircaseHandler.staircaseHandler)
 
     q = staircase_handler
-    responses = q.data
+    responses_correct = q.data
+    responses = q.otherData['Response']
 
     concentrations = q.otherData['Concentration']
     concentration_unit = 'log10 %'
@@ -836,14 +866,33 @@ def _gen_quest_report_olfactory(measurement):
              Concentration=concentrations,
              Concentration_Unit=concentration_unit,
              Response=responses,
+             Response_Correct=responses_correct,
              Comment=comments,
              Date=date_utc,
              Time_Zone=time_zone))
+
+    data_log['Response'] = data_log['Response'].astype('int')
+    data_log['Response'] += 1
+    data_log.loc[data_log['Response_Correct'] == 0, 'Response_Correct'] = False
+    data_log.loc[data_log['Response_Correct'] == 1, 'Response_Correct'] = True
+
+    figure = _gen_quest_plot_olfactory(participant=participant[0],
+                                       modality=modality,
+                                       substance=substance[0],
+                                       lateralization=lateralization[0],
+                                       method=method,
+                                       session=session[0],
+                                       concentrations=concentrations,
+                                       responses=data_log['Response_Correct'].values,
+                                       threshold=threshold)
 
     f = BytesIO()
     writer = pd.ExcelWriter(f, engine='xlsxwriter')
     data_threshold.to_excel(writer, sheet_name='Threshold', index=False)
     data_log.to_excel(writer, sheet_name='Log', index=False)
+
+    s = writer.sheets['Threshold']
+    s.insert_image('B7', 'Threshold_Plot.png', {'image_data': figure})
 
     writer.save()
     f.seek(0)
