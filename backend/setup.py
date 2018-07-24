@@ -8,6 +8,6 @@ setup(
     include_package_data=True,
     install_requires=[
         'flask', 'flask_restplus', 'flask-login', 'passlib',
-        'mysqlclient', 'xlsxwriter'
+        'mysqlclient'
     ],
 )
