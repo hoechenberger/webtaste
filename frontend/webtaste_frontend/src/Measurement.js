@@ -210,6 +210,18 @@ class Measurement extends Component {
     }
   };
 
+  _deleteMeasurement = async () => {
+    const uri = '/api/measurements/' + this.state.measurementId;
+
+    await fetch(uri, {
+      method: 'delete',
+    })
+  };
+
+  abortMeasurement = async () => {
+    await this._deleteMeasurement();
+    this.props.onRestart();
+  };
 
   toggleConfirmRestartModal = () => this.setState(
     {showConfirmRestartModal: !this.state.showConfirmRestartModal}
@@ -220,7 +232,7 @@ class Measurement extends Component {
       <div>
         <ConfirmRestartModal show={this.state.showConfirmRestartModal}
                              toggle={this.toggleConfirmRestartModal}
-                             onConfirm={this.props.onRestart}
+                             onConfirm={this.abortMeasurement}
                              header='Abort Measurement'
                              body='Would you like to abort the current measurement?'
                              confirmButtonText='Abort Measurement'/>

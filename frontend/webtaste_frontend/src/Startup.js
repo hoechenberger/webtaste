@@ -215,7 +215,6 @@ class Startup extends Component {
     }
   };
 
-
   render () {
     return (
       <div>
