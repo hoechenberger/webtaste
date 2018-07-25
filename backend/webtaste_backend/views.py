@@ -12,6 +12,8 @@ import random
 import numpy as np
 import pandas as pd
 from io import BytesIO
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 from .app import api, db
