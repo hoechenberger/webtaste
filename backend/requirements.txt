@@ -1,7 +1,9 @@
 flask
 flask_restplus
 flask-login
+flask_sqlalchemy
 passlib
 mysqlclient
+xlsxwriter
 
 -e .
