@@ -12,6 +12,8 @@ import random
 import numpy as np
 import pandas as pd
 from io import BytesIO
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 from .app import api, db
@@ -527,39 +529,6 @@ class TrialsWithNumber(Resource):
                 'measurement': f'/api/measurements/{measurement_id}/',
                 'trials': f'/api/measurements/{measurement_id}/trials/',
                 'self': f'/api/measurements/{measurement_id}/trials/{trial_number}'
-            }
-
-            response = {'data': data}
-            return response
-
-
-@api.route('/api/measurements/'
-           '<int:measurement_id>/trials/current')
-class TrialsWithNumber(Resource):
-    @api.doc(responses={200: 'Success',
-                        404: 'Resource not found'})
-    @login_required
-    def get(self, measurement_id):
-        """Retrieve the current trial.
-        """
-        current_trial = (models.Trial
-                         .query
-                         .filter(models.Trial.measurementId == measurement_id)
-                         .order_by(models.Trial.id.desc())
-                         .first())
-
-        if not current_trial:
-            abort(404)
-        else:
-            trial_number = current_trial['trialNumber']
-            data = marshal(current_trial, models.trial_server_response)
-
-            data['links'] = {
-                'measurements': f'/api/measurements/',
-                'measurement': f'/api/measurements/{measurement_id}/',
-                'trials': f'/api/measurements/{measurement_id}/trials/',
-                'self': f'/api/measurements/{measurement_id}/trials/'
-                        f'{trial_number}'
             }
 
             response = {'data': data}
