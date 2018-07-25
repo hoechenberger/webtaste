@@ -1,0 +1,14 @@
+FROM node:10.5
+
+COPY package.json .
+RUN npm install
+
+COPY public ./public
+COPY src ./src
+RUN npm run build && \
+    rm -rf public src node_modules package.json package-lock.json
+
+RUN npm install -g serve
+
+EXPOSE 5000
+CMD ["serve", "build/"]
