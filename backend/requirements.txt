@@ -3,6 +3,7 @@ flask_restplus
 flask-login
 flask_sqlalchemy
 passlib
+itsdangerous
 mysqlclient
 xlsxwriter
 

@@ -15,10 +15,10 @@ import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
-from .app import api, db, crypto_context
+from .app import api, db, crypto_context, serializer_for_email_confirmation
 from . import models
 from .utils import (find_nearest, get_start_val, get_sample_number,
-                    gen_concentration_steps)
+                    gen_concentration_steps, send_email)
 
 
 @api.route('/api/')
@@ -68,7 +68,53 @@ class Register(Resource):
         db.session.add(user)
         db.session.commit()
 
-        return f'User {username} was created.', 201
+        token = serializer_for_email_confirmation.dumps((username, email))
+        send_email(user=username,
+                   to_address=email,
+                   message_type='confirm_address',
+                   token=token)
+
+        msg = ('User was created. To activate the account, visit the web '
+               'address specified in the email sent to you.')
+        return msg, 201
+
+
+@api.route('/api/user/activate')
+class ConfirmEmail(Resource):
+    @api.param('token', 'The activation token sent via email.')
+    def get(self):
+        token = request.args.get('token')
+
+        if token is None:
+            return 'Query parameter missing.', 400
+
+        valid, payload = serializer_for_email_confirmation.loads_unsafe(token)
+        if not valid:
+            return 'Invalid token.', 403
+
+        username, email = payload
+
+        mask = models.User.name == username
+        user = (models.User
+                .query
+                .filter(mask)
+                .first())
+
+        if user.emailConfirmed:
+            return 'Email address has already been verified.'
+        else:
+            user.emailConfirmed = True
+            user.emailConfirmedDateUtc = datetime.utcnow()
+
+            db.session.add(user)
+            db.session.commit()
+            send_email(user=username,
+                       to_address=email,
+                       message_type='account_activated')
+
+            msg = ('Email address was successfully verified. Your account '
+                   'has been activated.')
+            return msg, 200
 
 
 @api.route('/api/user/login')
@@ -88,7 +134,9 @@ class Login(Resource):
                 .first())
 
         if user is None:
-            return 'User does not exist.', 403
+            return 'User does not exist.', 404
+        elif not user.emailConfirmed:
+            return 'User email confirmation is required for login.', 403
         else:
             valid, new_hash = crypto_context.verify_and_update(password,
                                                                user.password)
@@ -114,12 +162,12 @@ class Logout(Resource):
     @login_required
     def get(self):
         user = current_user
-        user_name = user.name
+        username = user.name
         user.authenticated = False
         db.session.add(user)
         db.session.commit()
         logout_user()
-        return f'User {user_name} successfully logged out.', 200
+        return f'User {username} successfully logged out.', 200
 
 
 @api.route('/api/measurements/')

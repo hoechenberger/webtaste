@@ -184,14 +184,15 @@ class User(db.Model):
     authenticated = db.Column(db.Boolean, default=False)
     registrationDateUtc = db.Column(db.DateTime)
     lastLoginDateUtc = db.Column(db.DateTime)
+    emailConfirmed = db.Column(db.Boolean, default=False)
+    emailConfirmedDateUtc = db.Column(db.DateTime)
 
     measurements = db.relationship('Measurement',
                                    back_populates='user',
                                    cascade='all, delete, delete-orphan')
 
     def is_active(self):
-        """True, as all users are active."""
-        return True
+        return self.emailConfirmed
 
     def get_id(self):
         # We MUST return a unicode object.

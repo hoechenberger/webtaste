@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 
 import numpy as np
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+from .app import app
 
 
 def find_nearest(a, a0):
@@ -132,3 +137,49 @@ def get_sample_number(concentration_steps, concentration):
     mask = concentration_steps == concentration
     sample_number = int(np.where(mask)[0][0]) + 1
     return sample_number
+
+
+def send_email(user, to_address, message_type, token=None):
+    from_address = app.config['SENSORY_TESTING_MAIL_FROM']
+    smtp_server_address = app.config['SMTP_SERVER']
+    smtp_user = app.config['SMTP_USER']
+    smtp_password = app.config['SMTP_PASSWORD']
+
+    msg = MIMEMultipart()
+    msg['From'] = from_address
+    msg['To'] = to_address
+
+    if message_type == 'confirm_address':
+        confirmation_uri = (f'https://sensory-testing.org/'
+                            f'api/user/confirm_email/?token={token}')
+
+        msg['Subject'] = 'sensory-testing.org: Please activate your account'
+        body = (f'Why, hello there!\n\n'
+                f'You have registered an account at '
+                f'sensory-testing.org with your email address '
+                f'{to_address}.\n\n'
+                f'        User name: {user}\n\n'
+                f'To activate this account, visit the following address:\n\n '
+                f'{confirmation_uri}')
+
+    elif message_type == 'account_activated':
+        msg['Subject'] = 'Welcome to sensory-testing.org!'
+
+        body = (f'Your account at sensory-testing.org was successfully '
+                f'activated.\n\n'
+                f'        User name: {user}.\n\n'
+                f'If you have any questions, please do not hesitate to '
+                f'contact me at {from_address}.\n\n'
+                f'Enjoy the Science!\n\n'
+                f'    Richard')
+    else:
+        raise ValueError('Invalid message_type specified.')
+
+    msg.attach(MIMEText(body, 'plain'))
+
+    server = smtplib.SMTP(smtp_server_address, 587)
+    server.starttls()
+    server.login(user=smtp_user, password=smtp_password)
+    text = msg.as_string()
+    server.sendmail(from_address, to_address, text)
+    server.quit()
