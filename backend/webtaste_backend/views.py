@@ -5,7 +5,6 @@ from datetime import datetime
 from flask import request, abort, Response, make_response
 from flask_restplus import Resource, marshal
 from flask_login import login_required, login_user, logout_user, current_user
-from passlib.hash import pbkdf2_sha256
 from psychopy.data import QuestHandler
 import random
 
@@ -16,7 +15,7 @@ import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
-from .app import api, db
+from .app import api, db, crypto_context
 from . import models
 from .utils import (find_nearest, get_start_val, get_sample_number,
                     gen_concentration_steps)
@@ -34,6 +33,7 @@ class Api(Resource):
         }
 
         return endpoints
+
 
 @api.route('/api/user/register')
 class Register(Resource):
@@ -55,7 +55,7 @@ class Register(Resource):
         if existing_user is not None:
             return f'User {username} already exists.', 409
 
-        password_hash = pbkdf2_sha256.hash(password)
+        password_hash = crypto_context.hash(password)
         del password
         del payload['password']
 
@@ -88,13 +88,18 @@ class Login(Resource):
                 .first())
 
         if user is None:
-            return 'Login failed.', 403
+            return 'User does not exist.', 403
         else:
-            if pbkdf2_sha256.verify(password, user.password):
-                last_login_date = datetime.utcnow()
+            valid, new_hash = crypto_context.verify_and_update(password,
+                                                               user.password)
+            if valid:
+                if new_hash:
+                    # Migrate to new hash if necessary, see
+                    # http://passlib.readthedocs.io/en/stable/narr/context-tutorial.html#integrating-hash-migration
+                    user.password = new_hash
 
                 user.authenticated = True
-                user.lastLoginDateUtc = last_login_date
+                user.lastLoginDateUtc = datetime.utcnow()
                 db.session.add(user)
                 db.session.commit()
 

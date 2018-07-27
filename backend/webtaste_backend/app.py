@@ -5,7 +5,7 @@ from flask import Flask
 from flask_restplus import Api
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-
+from passlib.context import CryptContext
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
@@ -20,6 +20,8 @@ api = Api(app)
 
 from . import views
 db.create_all()  # We must do this AFTER importing views.
+
+crypto_context = CryptContext(schemes=['pbkdf2_sha256'])
 
 
 if __name__ == '__main__':
