@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { Button, Form, Input,
   Card, CardBody, CardHeader, Collapse } from 'reactstrap';
-
+import { withRouter } from 'react-router-dom'
 
 class RegisterLogin extends Component {
   state = {
@@ -97,10 +97,21 @@ class RegisterLogin extends Component {
     } else {
       console.log('User login failed.')
     }
-
   };
 
+  componentDidMount = () => {
+    if (this.props.loggedIn) {
+      this.props.history.push('/startup')
+    }
+  };
+
+  componentDidUpdate = this.componentDidMount;
+
   render () {
+    if (this.props.loggedIn) {
+      return null
+    }
+
     return (
         <div>
           <Card className="login-card">
@@ -172,4 +183,4 @@ class RegisterLogin extends Component {
 }
 
 
-export default RegisterLogin;
+export default withRouter(RegisterLogin);

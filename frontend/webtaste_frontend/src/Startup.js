@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { Button, Form, FormGroup, Label, Input,
   Card, CardBody, CardHeader, Collapse } from 'reactstrap';
+import { withRouter } from 'react-router-dom'
 import Tooltip from './Tooltip'
 
 
@@ -93,7 +94,20 @@ class Startup extends Component {
     date: ""
   };
 
-  componentDidMount = () => this.restoreStateFromLocalStorage();
+  componentDidMount = () => {
+    if (!this.props.loggedIn) {
+      this.props.history.push('/');
+      return
+    }
+    this.restoreStateFromLocalStorage();
+  };
+
+  componentDidUpdate = () => {
+    if (!this.props.loggedIn) {
+      this.props.history.push('/')
+    }
+  };
+
 
   restoreStateFromLocalStorage = () => {
     // for all items in state
@@ -146,6 +160,7 @@ class Startup extends Component {
 
     this.saveStateToLocalStorage();
     this.props.onMetadataSubmit(metadata);
+    this.props.history.push('/measurement')
   };
 
   toggleParticipantInfoCard = () => {
@@ -216,8 +231,12 @@ class Startup extends Component {
   };
 
   render () {
+    if (!this.props.loggedIn) {
+      return null
+    }
+
     return (
-      <div>
+      <div className="measurement-info">
         <Form method="post"
             onSubmit={this.handleSubmit}
             className="measurement-info-form">
@@ -383,4 +402,4 @@ class Startup extends Component {
   }
 }
 
-export default Startup;
+export default withRouter(Startup);
