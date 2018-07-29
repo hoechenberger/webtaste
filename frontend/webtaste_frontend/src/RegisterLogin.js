@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Button, Form, FormGroup, Input,
+import { Button, Form, FormGroup, FormFeedback, Input,
   Card, CardBody, CardHeader, Collapse } from 'reactstrap';
 import { withRouter } from 'react-router-dom'
 
@@ -8,8 +8,11 @@ class RegisterLogin extends Component {
     registerUsername: "",
     registerEmail: "",
     registerPassword: "",
+    registerPasswordRepeat: "",
     loginUsername: "",
     loginPassword: "",
+    registerPasswordsMatch: true,      // Will be reset during form validation
+    registerPasswordMeetsPolicy: true, // Will be reset during form validation
     loginCardIsOpen: true,
     registerCardIsOpen: false
   };
@@ -25,15 +28,27 @@ class RegisterLogin extends Component {
   };
 
   handleRegisterUsernameChange = (e) => {
-    this.setState({registerUsername: e.target.value});
+    this.setState({registerUsername: e.target.value},
+        this.checkIfRegisterFormIsFilled);
   };
 
   handleRegisterEmailChange = (e) => {
-    this.setState({registerEmail: e.target.value});
+    this.setState({registerEmail: e.target.value},
+    this.checkIfRegisterFormIsFilled);
   };
 
   handleRegisterPasswordChange = (e) => {
-    this.setState({registerPassword: e.target.value});
+    this.setState({registerPassword: e.target.value},
+        () => {
+          this.checkRegisterPasswordMeetsPolicy();
+          this.checkRegisterPasswordsMatch();
+        }
+    );
+  };
+
+  handleRegisterPasswordRepeatChange = (e) => {
+    this.setState({registerPasswordRepeat: e.target.value},
+        this.checkRegisterPasswordsMatch);
   };
 
   handleLoginUsernameChange = (e) => {
@@ -42,6 +57,41 @@ class RegisterLogin extends Component {
 
   handleLoginPasswordChange = (e) => {
     this.setState({loginPassword: e.target.value});
+  };
+
+  checkRegisterPasswordMeetsPolicy = () => {
+    let registerPasswordMeetsPolicy;
+
+    this.state.registerPassword.length >= 8
+        ? registerPasswordMeetsPolicy = true
+        : registerPasswordMeetsPolicy = false;
+
+    this.setState({registerPasswordMeetsPolicy: registerPasswordMeetsPolicy},
+        this.checkIfRegisterFormIsFilled);
+  };
+
+  checkRegisterPasswordsMatch = () => {
+    let registerPasswordsMatch;
+
+    this.state.registerPassword === this.state.registerPasswordRepeat
+        ? registerPasswordsMatch = true
+        : registerPasswordsMatch = false;
+
+    this.setState({registerPasswordsMatch: registerPasswordsMatch},
+        this.checkIfRegisterFormIsFilled);
+  };
+
+  checkIfRegisterFormIsFilled = () => {
+    let registerFormIsFilled;
+
+    (this.state.registerUsername.length > 0 &&
+     this.state.registerEmail.length > 0 &&
+     this.state.registerPasswordMeetsPolicy &&
+     this.state.registerPasswordsMatch)
+        ? registerFormIsFilled = true
+        : registerFormIsFilled = false;
+
+    this.setState({registerFormIsFilled: registerFormIsFilled});
   };
 
   registerUser = async (e) => {
@@ -176,11 +226,32 @@ class RegisterLogin extends Component {
                            placeholder="Password"
                            value={this.state.registerPassword}
                            onChange={this.handleRegisterPasswordChange}
+                           invalid={!this.state.registerPasswordMeetsPolicy}
                            required />
+                    <FormFeedback>
+                      Password does not meet our security policy:
+                      <ul>
+                        <li>Minimum length: 8 characters</li>
+                      </ul>
+                    </FormFeedback>
                   </FormGroup>
 
-                  <Button color='success' className="register-button" size="lg"
-                          block>Register</Button>
+                  <FormGroup>
+                    <Input type="password" name="register-password-repeat" id="register-password-repeat"
+                           placeholder="Password repeat"
+                           value={this.state.registerPasswordRepeat}
+                           onChange={this.handleRegisterPasswordRepeatChange}
+                           invalid={!this.state.registerPasswordsMatch}
+                           required />
+                    <FormFeedback>Passwords do not match.</FormFeedback>
+                  </FormGroup>
+
+                  <Button color='success' className="register-button"
+                          size="lg"
+                          block
+                          disabled={!this.state.registerFormIsFilled}>
+                    Register
+                  </Button>
                 </Form>
               </CardBody>
             </Collapse>
