@@ -11,6 +11,7 @@ class RegisterLogin extends Component {
     registerPasswordRepeat: "",
     loginUsername: "",
     loginPassword: "",
+    loginSuccessful: true,             // Will be reset during login
     registerPasswordsMatch: true,      // Will be reset during form validation
     registerPasswordMeetsPolicy: true, // Will be reset during form validation
     loginCardIsOpen: true,
@@ -142,10 +143,10 @@ class RegisterLogin extends Component {
     });
 
     if (response.ok) {
-      console.log('User login successful.');
+      this.setState({loginSuccessful: true});
       this.props.onLogin();
     } else {
-      console.log('User login failed.')
+      this.setState({loginSuccessful: false});
     }
   };
 
@@ -178,6 +179,7 @@ class RegisterLogin extends Component {
                            placeholder="User name"
                            value={this.state.loginUsername}
                            onChange={this.handleLoginUsernameChange}
+                           invalid={!this.state.loginSuccessful}
                            required />
                   </FormGroup>
 
@@ -186,7 +188,11 @@ class RegisterLogin extends Component {
                            placeholder="Password"
                            value={this.state.loginPassword}
                            onChange={this.handleLoginPasswordChange}
+                           invalid={!this.state.loginSuccessful}
                            required />
+                    <FormFeedback>
+                      Username and password do not match, or user does not exist.
+                    </FormFeedback>
                   </FormGroup>
 
                   <Button color='success' className="login-button" size="lg"
