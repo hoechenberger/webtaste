@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Button, Form, Input,
+import { Button, Form, FormGroup, Input,
   Card, CardBody, CardHeader, Collapse } from 'reactstrap';
 import { withRouter } from 'react-router-dom'
 
@@ -123,17 +123,21 @@ class RegisterLogin extends Component {
                 <Form method="post"
                       onSubmit={this.loginUser}
                       className="measurement-info-form">
-                  <Input name="login-username" id="login-username"
-                         placeholder="User name"
-                         value={this.state.loginUsername}
-                         onChange={this.handleLoginUsernameChange}
-                         required />
+                  <FormGroup>
+                    <Input name="login-username" id="login-username"
+                           placeholder="User name"
+                           value={this.state.loginUsername}
+                           onChange={this.handleLoginUsernameChange}
+                           required />
+                  </FormGroup>
 
-                  <Input type="password" name="login-password" id="login-password"
-                         placeholder="Password"
-                         value={this.state.loginPassword}
-                         onChange={this.handleLoginPasswordChange}
-                         required />
+                  <FormGroup>
+                    <Input type="password" name="login-password" id="login-password"
+                           placeholder="Password"
+                           value={this.state.loginPassword}
+                           onChange={this.handleLoginPasswordChange}
+                           required />
+                  </FormGroup>
 
                   <Button color='success' className="login-button" size="lg"
                           block>Login</Button>
@@ -151,24 +155,29 @@ class RegisterLogin extends Component {
                 <Form method="post"
                       onSubmit={this.registerUser}
                       className='measurement-info-form'>
-                  <Input name="register-username" id="register-username"
-                         placeholder="User name"
-                         value={this.state.registerUsername}
-                         onChange={this.handleRegisterUsernameChange}
-                         required />
+                   <FormGroup>
+                     <Input name="register-username" id="register-username"
+                            placeholder="User name"
+                            value={this.state.registerUsername}
+                            onChange={this.handleRegisterUsernameChange}
+                            required />
+                   </FormGroup>
 
-                  <Input type="email" name="register-email" id="register-email"
-                         placeholder="john@doe.com"
-                         value={this.state.registerEmail}
-                         onChange={this.handleRegisterEmailChange}
-                         required />
+                  <FormGroup>
+                    <Input type="email" name="register-email" id="register-email"
+                           placeholder="john@doe.com"
+                           value={this.state.registerEmail}
+                           onChange={this.handleRegisterEmailChange}
+                           required />
+                  </FormGroup>
 
-
-                  <Input type="password" name="register-password" id="register-password"
-                         placeholder="Password"
-                         value={this.state.registerPassword}
-                         onChange={this.handleRegisterPasswordChange}
-                         required />
+                  <FormGroup>
+                    <Input type="password" name="register-password" id="register-password"
+                           placeholder="Password"
+                           value={this.state.registerPassword}
+                           onChange={this.handleRegisterPasswordChange}
+                           required />
+                  </FormGroup>
 
                   <Button color='success' className="register-button" size="lg"
                           block>Register</Button>
