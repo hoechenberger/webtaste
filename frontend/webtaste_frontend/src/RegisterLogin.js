@@ -36,6 +36,7 @@ class RegistrationSuccessfulModal extends Component {
   }
 }
 
+
 class RegisterLogin extends Component {
   state = {
     registerUsername: "",
@@ -50,7 +51,8 @@ class RegisterLogin extends Component {
     loginCardIsOpen: true,
     registerCardIsOpen: false,
     registrationSuccessful: false,
-    registrationSuccessfulModalIsOpen: false
+    registrationSuccessfulModalIsOpen: false,
+    registerUsernameIsAvailable: true
   };
 
   toggleCards = () => {
@@ -64,7 +66,10 @@ class RegisterLogin extends Component {
   };
 
   handleRegisterUsernameChange = (e) => {
-    this.setState({registerUsername: e.target.value},
+    this.setState({
+          registerUsername: e.target.value,
+          registerUsernameIsAvailable: true
+        },
         () => {
           this.checkRegisterPasswordMeetsPolicy();
           this.checkIfRegisterFormIsFilled();
@@ -144,6 +149,7 @@ class RegisterLogin extends Component {
     let registerFormIsFilled;
 
     (this.state.registerUsername.length > 0 &&
+     this.state.registerUsernameIsAvailable &&
      this.state.registerEmail.length > 0 &&
      this.state.registerPasswordMeetsPolicy &&
      this.state.registerPassword &&
@@ -180,8 +186,10 @@ class RegisterLogin extends Component {
         registrationSuccessful: true,
         registrationSuccessfulModalIsOpen: true
       })
-    } else {
-      this.setState({registrationSuccessful: false});
+    } else if (response.status === 409) {
+      this.setState({
+        registerUsernameIsAvailable: false,
+        registrationSuccessful: false});
     }
   };
 
@@ -291,7 +299,12 @@ class RegisterLogin extends Component {
                             placeholder="User name"
                             value={this.state.registerUsername}
                             onChange={this.handleRegisterUsernameChange}
+                            invalid={!this.state.registerUsernameIsAvailable}
                             required />
+                     <FormFeedback>
+                       The selected user name is unavailable. Please choose a
+                       different user name.
+                     </FormFeedback>
                    </FormGroup>
 
                   <FormGroup>
