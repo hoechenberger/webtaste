@@ -151,7 +151,7 @@ def send_email(user, to_address, message_type, token=None):
 
     if message_type == 'confirm_address':
         confirmation_uri = (f'https://sensory-testing.org/'
-                            f'api/user/confirm_email/?token={token}')
+                            f'confirm_email/?token={token}')
 
         msg['Subject'] = 'sensory-testing.org: Please activate your account'
         body = (f'Why, hello there!\n\n'
@@ -181,5 +181,11 @@ def send_email(user, to_address, message_type, token=None):
     server.starttls()
     server.login(user=smtp_user, password=smtp_password)
     text = msg.as_string()
-    server.sendmail(from_address, to_address, text)
+
+    try:
+        server.sendmail(from_address, to_address, text)
+    except Exception:  # FIXME
+        msg = (f'Something went wrong while trying to send {message_type} '
+               f'email to {to_address}.')
+        print(msg)
     server.quit()

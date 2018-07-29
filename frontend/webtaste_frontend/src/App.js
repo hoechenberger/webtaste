@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import Startup from './Startup'
 import Measurement from './Measurement'
 import RegisterLogin from './RegisterLogin'
+import EmailConfirmation from './EmailConfirmation'
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 
 // import './App.css';
@@ -84,6 +85,9 @@ class App extends Component {
                            metadata={this.state.metadata}
                            onRestart={this.resetState} />
                    )}
+            />
+            <Route path="/confirm_email" exact
+                   component={EmailConfirmation}
             />
             <Route path="/" exact
                    render={() => (
