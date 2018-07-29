@@ -1,7 +1,40 @@
 import React, { Component } from 'react';
 import { Button, Form, FormGroup, FormFeedback, Input,
+  Modal, ModalBody, ModalFooter, ModalHeader,
   Card, CardBody, CardHeader, Collapse } from 'reactstrap';
 import { withRouter } from 'react-router-dom'
+
+
+class RegistrationSuccessfulModal extends Component {
+  render() {
+    return (
+        <Modal isOpen={this.props.show}
+               toggle={this.props.toggle}>
+          <ModalHeader toggle={this.props.toggle}>
+            Registration successful
+          </ModalHeader>
+          <ModalBody>
+            <p>Your registration was successful.</p>
+            <p>
+              <strong>User name:</strong> {this.props.username}<br />
+              <strong>Email:</strong> {this.props.email}
+            </p>
+            <p>
+              An activation link has been sent to your email address. Please
+              use it to activate your account. After activation, you may
+              log in.
+            </p>
+          </ModalBody>
+          <ModalFooter>
+            <Button color="primary"
+                    onClick={this.props.toggle}>
+                    Close
+            </Button>
+          </ModalFooter>
+        </Modal>
+    );
+  }
+}
 
 class RegisterLogin extends Component {
   state = {
@@ -15,7 +48,9 @@ class RegisterLogin extends Component {
     registerPasswordsMatch: true,      // Will be reset during form validation
     registerPasswordMeetsPolicy: true, // Will be reset during form validation
     loginCardIsOpen: true,
-    registerCardIsOpen: false
+    registerCardIsOpen: false,
+    registrationSuccessful: false,
+    registrationSuccessfulModalIsOpen: false
   };
 
   toggleCards = () => {
@@ -141,9 +176,12 @@ class RegisterLogin extends Component {
     });
 
     if (response.ok) {
-      console.log('User registration successful.')
+      this.setState({
+        registrationSuccessful: true,
+        registrationSuccessfulModalIsOpen: true
+      })
     } else {
-      console.log('User registration failed.')
+      this.setState({registrationSuccessful: false});
     }
   };
 
@@ -173,6 +211,12 @@ class RegisterLogin extends Component {
     } else {
       this.setState({loginSuccessful: false});
     }
+  };
+
+  toggleRegistrationSuccessfulModal = () => {
+    const value = !this.state.registrationSuccessfulModalIsOpen;
+    this.setState({registrationSuccessfulModalIsOpen: value});
+    this.toggleCards(); // Hide the registration card, show the login card.
   };
 
   componentDidMount = () => {
@@ -228,6 +272,12 @@ class RegisterLogin extends Component {
           </Card>
 
           <Card className="register-card">
+            <RegistrationSuccessfulModal
+                show={this.state.registrationSuccessfulModalIsOpen}
+                toggle={this.toggleRegistrationSuccessfulModal}
+                username={this.state.registerUsername}
+                email={this.state.registerEmail}
+            />
             <CardHeader onClick={this.toggleCards}>
               Register
             </CardHeader>
