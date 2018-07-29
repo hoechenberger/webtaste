@@ -101,7 +101,7 @@ class ConfirmEmail(Resource):
                 .first())
 
         if user.emailConfirmed:
-            return 'Email address has already been verified.'
+            return 'Email address has already been verified.', 409
         else:
             user.emailConfirmed = True
             user.emailConfirmedDateUtc = datetime.utcnow()
