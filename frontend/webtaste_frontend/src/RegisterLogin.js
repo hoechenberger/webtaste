@@ -30,12 +30,19 @@ class RegisterLogin extends Component {
 
   handleRegisterUsernameChange = (e) => {
     this.setState({registerUsername: e.target.value},
-        this.checkIfRegisterFormIsFilled);
+        () => {
+          this.checkRegisterPasswordMeetsPolicy();
+          this.checkIfRegisterFormIsFilled();
+        })
   };
 
   handleRegisterEmailChange = (e) => {
     this.setState({registerEmail: e.target.value},
-    this.checkIfRegisterFormIsFilled);
+        () => {
+          this.checkRegisterPasswordMeetsPolicy();
+          this.checkIfRegisterFormIsFilled();
+        }
+    );
   };
 
   handleRegisterPasswordChange = (e) => {
@@ -43,13 +50,19 @@ class RegisterLogin extends Component {
         () => {
           this.checkRegisterPasswordMeetsPolicy();
           this.checkRegisterPasswordsMatch();
+          this.checkIfRegisterFormIsFilled();
         }
     );
   };
 
   handleRegisterPasswordRepeatChange = (e) => {
     this.setState({registerPasswordRepeat: e.target.value},
-        this.checkRegisterPasswordsMatch);
+        () => {
+          this.checkRegisterPasswordMeetsPolicy();
+          this.checkRegisterPasswordsMatch();
+          this.checkIfRegisterFormIsFilled();
+        }
+    );
   };
 
   handleLoginUsernameChange = (e) => {
@@ -61,11 +74,21 @@ class RegisterLogin extends Component {
   };
 
   checkRegisterPasswordMeetsPolicy = () => {
-    let registerPasswordMeetsPolicy;
+    let registerPasswordMeetsPolicy = true;
 
-    this.state.registerPassword.length >= 8
-        ? registerPasswordMeetsPolicy = true
-        : registerPasswordMeetsPolicy = false;
+    (this.state.registerPassword &&
+        this.state.registerPassword.length < 8)
+        ? registerPasswordMeetsPolicy = false : null;
+
+    (this.state.registerPassword &&
+        this.state.registerUsername &&
+        this.state.registerPassword.includes(this.state.registerUsername))
+        ? registerPasswordMeetsPolicy = false : null;
+
+    (this.state.registerPassword &&
+        this.state.registerEmail &&
+        this.state.registerPassword.includes(this.state.registerEmail))
+        ? registerPasswordMeetsPolicy = false : null;
 
     this.setState({registerPasswordMeetsPolicy: registerPasswordMeetsPolicy},
         this.checkIfRegisterFormIsFilled);
@@ -88,6 +111,8 @@ class RegisterLogin extends Component {
     (this.state.registerUsername.length > 0 &&
      this.state.registerEmail.length > 0 &&
      this.state.registerPasswordMeetsPolicy &&
+     this.state.registerPassword &&
+     this.state.registerPasswordRepeat &&
      this.state.registerPasswordsMatch)
         ? registerFormIsFilled = true
         : registerFormIsFilled = false;
@@ -238,6 +263,8 @@ class RegisterLogin extends Component {
                       Password does not meet our security policy:
                       <ul>
                         <li>Minimum length: 8 characters</li>
+                        <li>Must not include user name</li>
+                        <li>Must not include  email address</li>
                       </ul>
                     </FormFeedback>
                   </FormGroup>
