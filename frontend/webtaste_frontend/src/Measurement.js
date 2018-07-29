@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { Button, Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
 import Plot from 'react-plotly.js';
 import { saveAs } from 'file-saver';
+import { withRouter } from 'react-router-dom'
 
 
 class TrialPlot extends Component {
@@ -144,7 +145,27 @@ class Measurement extends Component {
     responseButtonsEnabled: false
   };
 
-  componentDidMount = () => this.startMeasurement(this.props.metadata);
+  componentDidMount = () => {
+    if (!this.props.loggedIn) {
+      this.props.history.push('/');
+      return
+    } else if (Object.keys(this.props.metadata).length === 0) {
+      this.props.history.push('/startup');
+      return
+    }
+
+    this.startMeasurement(this.props.metadata);
+  };
+
+  componentDidUpdate = () => {
+    if (!this.props.loggedIn) {
+      this.props.history.push('/');
+      return
+    } else if (Object.keys(this.props.metadata).length === 0) {
+      this.props.history.push('/startup');
+      return
+    }
+  };
 
   handleYesResponseButton = () => {
     this.setState({responseButtonsEnabled: false},
@@ -434,6 +455,11 @@ class Measurement extends Component {
 
 
   render () {
+      if (!this.props.loggedIn ||
+          (Object.keys(this.props.metadata).length === 0)) {
+        return null
+      }
+
     let buttons;
 
     if (this.props.metadata.modality === "gustatory") {
@@ -443,7 +469,7 @@ class Measurement extends Component {
     }
 
     return (
-      <div>
+      <div className="measurement">
         <div>
           — Participant {this.props.metadata.participant} —<br/>
           <small>
@@ -486,4 +512,4 @@ class Measurement extends Component {
   }
 }
 
-export default Measurement;
+export default withRouter(Measurement);

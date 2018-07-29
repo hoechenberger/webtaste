@@ -2,6 +2,8 @@ import React, { Component } from 'react';
 import Startup from './Startup'
 import Measurement from './Measurement'
 import RegisterLogin from './RegisterLogin'
+import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
+
 // import './App.css';
 
 
@@ -9,7 +11,6 @@ import RegisterLogin from './RegisterLogin'
 class App extends Component {
   initialState = {
     loggedIn: false,
-    metadataSubmitted: false,
     metadata: {}
   };
 
@@ -18,7 +19,6 @@ class App extends Component {
   // resetState = () => this.setState(this.initialState);
 
   resetState = () => this.setState({
-    metadataSubmitted: false,
     metadata: {}
   });
 
@@ -29,38 +29,27 @@ class App extends Component {
   // };
 
   onMetadataSubmit = (metadata) => this.setState({
-    metadataSubmitted: true,
     metadata: metadata
   });
 
   onLogin = () => this.setState({loggedIn: true});
   onLogout = () => this.setState({loggedIn: false});
 
-  renderMainView = () => {
-    if (!this.state.loggedIn) {
-      return (
-        <div className="register-login">
-          <RegisterLogin onLogin={this.onLogin}/>
-        </div>
-      )
-    } else {
-      if (!this.state.metadataSubmitted) {
-        return (
-            <div className="measurement-info">
-              <Startup onMetadataSubmit={this.onMetadataSubmit}/>
-            </div>
-        )
-      } else {
-        return (
-            <div className="measurement">
-              <Measurement
-                  metadata={this.state.metadata}
-                  onRestart={this.resetState}/>
-            </div>
-        )
-      }
-    }
-  };
+  // renderMainView = () => {
+  //   if (!this.state.loggedIn) {
+  //     return <RegisterLogin onLogin={this.onLogin}/>
+  //   } else {
+  //     if (!this.state.metadataSubmitted) {
+  //       return <Startup onMetadataSubmit={this.onMetadataSubmit}/>
+  //     } else {
+  //       return (
+  //             <Measurement
+  //                 metadata={this.state.metadata}
+  //                 onRestart={this.resetState}/>
+  //       )
+  //     }
+  //   }
+  // };
 
   genTitle = () => {
     if (Object.keys(this.state.metadata).length > 0) {
@@ -78,7 +67,33 @@ class App extends Component {
     return (
       <div className="app">
         <h2>{this.genTitle()}</h2>
-        {this.renderMainView()}
+        {/*{this.renderMainView()}*/}
+        <Router>
+          <Switch>
+            <Route path="/startup" exact
+                   render={() => (
+                       <Startup
+                           onMetadataSubmit={this.onMetadataSubmit}
+                           loggedIn={this.state.loggedIn}/>
+                   )}
+            />
+            <Route path="/measurement" exact
+                   render={() => (
+                       <Measurement
+                           loggedIn={this.state.loggedIn}
+                           metadata={this.state.metadata}
+                           onRestart={this.resetState} />
+                   )}
+            />
+            <Route path="/" exact
+                   render={() => (
+                       <RegisterLogin
+                           onLogin={this.onLogin}
+                           loggedIn={this.state.loggedIn} />
+                   )}
+            />
+          </Switch>
+        </Router>
       </div>
     )
   }
