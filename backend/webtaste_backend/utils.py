@@ -151,7 +151,7 @@ def send_email(user, to_address, message_type, token=None):
 
     if message_type == 'confirm_address':
         confirmation_uri = (f'https://sensory-testing.org/'
-                            f'api/user/confirm_email/?token={token}')
+                            f'confirm_email/?token={token}')
 
         msg['Subject'] = 'sensory-testing.org: Please activate your account'
         body = (f'Why, hello there!\n\n'
