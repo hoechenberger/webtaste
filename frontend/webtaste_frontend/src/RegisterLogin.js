@@ -14,14 +14,14 @@ class RegisterLogin extends Component {
     registerCardIsOpen: false
   };
 
-  toggleRegisterCard = () => {
-    const registerCardIsOpen = !this.state.registerCardIsOpen;
-    this.setState({registerCardIsOpen: registerCardIsOpen});
-  };
-
-  toggleLoginCard = () => {
+  toggleCards = () => {
     const loginCardIsOpen = !this.state.loginCardIsOpen;
-    this.setState({loginCardIsOpen: loginCardIsOpen});
+    const registerCardIsOpen = !this.state.registerCardIsOpen;
+
+    this.setState({
+      loginCardIsOpen: loginCardIsOpen,
+      registerCardIsOpen: registerCardIsOpen
+    });
   };
 
   handleRegisterUsernameChange = (e) => {
@@ -115,7 +115,7 @@ class RegisterLogin extends Component {
     return (
         <div>
           <Card className="login-card">
-            <CardHeader onClick={this.toggleLoginCard}>
+            <CardHeader onClick={this.toggleCards}>
               Login
             </CardHeader>
             <Collapse isOpen={this.state.loginCardIsOpen}>
@@ -147,7 +147,7 @@ class RegisterLogin extends Component {
           </Card>
 
           <Card className="register-card">
-            <CardHeader onClick={this.toggleRegisterCard}>
+            <CardHeader onClick={this.toggleCards}>
               Register
             </CardHeader>
             <Collapse isOpen={this.state.registerCardIsOpen}>
