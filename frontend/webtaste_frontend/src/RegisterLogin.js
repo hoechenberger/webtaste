@@ -114,21 +114,22 @@ class RegisterLogin extends Component {
   };
 
   checkRegisterPasswordMeetsPolicy = () => {
-    let registerPasswordMeetsPolicy = true;
+    let registerPasswordMeetsPolicy;
 
-    (this.state.registerPassword &&
-        this.state.registerPassword.length < 8)
-        ? registerPasswordMeetsPolicy = false : null;
-
-    (this.state.registerPassword &&
+    if (this.state.registerPassword &&
+        this.state.registerPassword.length < 8) {
+      registerPasswordMeetsPolicy = false;
+    } else if (this.state.registerPassword &&
         this.state.registerUsername &&
-        this.state.registerPassword.includes(this.state.registerUsername))
-        ? registerPasswordMeetsPolicy = false : null;
-
-    (this.state.registerPassword &&
+        this.state.registerPassword.includes(this.state.registerUsername)) {
+      registerPasswordMeetsPolicy = false;
+    } else if (this.state.registerPassword &&
         this.state.registerEmail &&
-        this.state.registerPassword.includes(this.state.registerEmail))
-        ? registerPasswordMeetsPolicy = false : null;
+        this.state.registerPassword.includes(this.state.registerEmail)) {
+      registerPasswordMeetsPolicy = false;
+    } else {
+      registerPasswordMeetsPolicy = true;
+    }
 
     this.setState({registerPasswordMeetsPolicy: registerPasswordMeetsPolicy},
         this.checkIfRegisterFormIsFilled);
@@ -137,10 +138,7 @@ class RegisterLogin extends Component {
   checkRegisterPasswordsMatch = () => {
     let registerPasswordsMatch;
 
-    this.state.registerPassword === this.state.registerPasswordRepeat
-        ? registerPasswordsMatch = true
-        : registerPasswordsMatch = false;
-
+    registerPasswordsMatch = this.state.registerPassword === this.state.registerPasswordRepeat;
     this.setState({registerPasswordsMatch: registerPasswordsMatch},
         this.checkIfRegisterFormIsFilled);
   };
