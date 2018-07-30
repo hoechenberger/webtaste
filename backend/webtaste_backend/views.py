@@ -151,7 +151,7 @@ class Login(Resource):
                 db.session.add(user)
                 db.session.commit()
 
-                login_user(user, remember=True)
+                login_user(user, remember=False)
                 return f'User {username} was successfully logged in.', 200
             else:
                 return 'Login failed.', 403
