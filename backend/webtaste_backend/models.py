@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from flask_restplus.fields import String, Integer, Float, Boolean, Nested, List
+from flask_restplus.fields import String, Integer, Float, Boolean, Nested
 from .app import api, db, login_manager
 from .constants import SUBSTANCES
 
@@ -24,17 +24,10 @@ measurement_metadata = api.model('Measurement Metadata', {
                                    'both sides']),
     'startVal': Integer(description='Starting concentration',
                         enum=[15, 16], example=15),
-    'session': String(description='Session',
-                      required=True, example='Test'),
+    'sessionName': String(description='Session',
+                          required=True, example='Test'),
     'date': String(description='Date', required=True)})
 
-trial = api.model('Trial', {
-    'id': Integer(description='Trial number', required=True),
-    'trialNumber': Integer(description='Trial number', required=True),
-    'concentration': Float(description='The stimulus concentration to use',
-                           required=True),
-    'responseCorrect': Boolean(description='Whether the participant gave the'
-                                           'correct response')})
 
 trial_participant_response = api.model('Trial Response', {
     'response': String(description='The given response'),
@@ -42,8 +35,10 @@ trial_participant_response = api.model('Trial Response', {
                                            'correct response',
                                required=True)})
 
+
 trial_server_response = api.model('Trial', {
-    'trialNumber': Integer(description='Trial number', required=True),
+    'trialNumber': Integer(description='Trial number', required=True,
+                           attribute='number'),
     'concentration': Float(description='The stimulus concentration to use',
                            required=True),
     'sampleNumber': Integer(description='The number of the stimulus sample',
@@ -59,9 +54,28 @@ trial_new = api.model('New trial', {})
 
 report_new = api.model('New report', {})
 
+study_new = api.model('New study', {
+    'name': String(description='Name of the study', required=True)
+})
+
+# session_new = api.model('New session', {
+#     'name': String(description='Name of the session', required=True)
+# })
+
+study = api.model('Study', {
+    'id': Integer(description='Study ID', required=True),
+    'name': String(description='Name of the study', required=True),
+    'completed': Boolean(description='Whether the study has been completed',
+                         default=False)
+})
+
+# session = api.model('Session', {
+#     'id': Integer(description='Study ID', required=True),
+#     'name': String(description='Name of the study', required=True),
+# })
 
 measurement = api.model('Measurement', {
-    'id': Integer(description='Measurement ID', required=True),
+    'number': Integer(description='Measurement Number', required=True),
     'started': Boolean(description='Staircase started', default=False,
                        required=True),
     'finished': Boolean(description='Staircase finished', default=False,
@@ -70,9 +84,10 @@ measurement = api.model('Measurement', {
                                     default=0, required=True),
     'currentTrialNumber': Integer(description='Number of the current trial',
                                   required=True),
-    'trials': Nested(trial),
+    'trials': Nested(trial_server_response),
     'metadata': Nested(measurement_metadata, attribute='metadata_'),
-    'threshold': Float(description='The estimated threshold')
+    'threshold': Float(description='The estimated threshold'),
+    'study': Nested(study)
 })
 
 
@@ -88,10 +103,63 @@ user_login = api.model('User Login', {
 })
 
 
+class User(db.Model):
+    __tablename__ = 'users'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(length=30), unique=True)
+    email = db.Column(db.String(length=100), unique=True)
+    password = db.Column(db.String(length=100))
+    authenticated = db.Column(db.Boolean, default=False)
+    registrationDateUtc = db.Column(db.DateTime)
+    lastLoginDateUtc = db.Column(db.DateTime)
+    emailConfirmed = db.Column(db.Boolean, default=False)
+    emailConfirmedDateUtc = db.Column(db.DateTime)
+
+    studies = db.relationship('Study',
+                              back_populates='user',
+                              cascade='all, delete, delete-orphan')
+
+    def is_active(self):
+        return self.emailConfirmed
+
+    def get_id(self):
+        # We MUST return a unicode object.
+        return str(self.id)
+
+    def is_authenticated(self):
+        return self.authenticated
+
+    def is_anonymous(self):
+        """False, as anonymous users aren't supported."""
+        return False
+
+
+class Study(db.Model):
+    __tablename__ = 'studies'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(length=50))
+    completed = db.Column(db.Boolean, default=False)
+
+    measurements = db.relationship('Measurement',
+                                   back_populates='study',
+                                   cascade='all, delete, delete-orphan')
+
+    userId = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user = db.relationship('User', back_populates='studies',
+                           uselist=False)
+
+
 class Measurement(db.Model):
     __tablename__ = 'measurements'
 
     id = db.Column(db.Integer, primary_key=True)
+
+    studyId = db.Column(db.Integer, db.ForeignKey('studies.id'))
+    study = db.relationship('Study', back_populates='measurements')
+
+    number = db.Column(db.Integer, default=1)
     finished = db.Column(db.Boolean)
     trialsCompletedCount = db.Column(db.Integer)
     currentTrialNumber = db.Column(db.Integer)
@@ -113,14 +181,6 @@ class Measurement(db.Model):
 
     threshold = db.Column(db.Float)
 
-    userId = db.Column(db.Integer, db.ForeignKey('users.id'))
-    user = db.relationship('User', back_populates='measurements',
-                           uselist=False)
-
-    # def __repr__(self):
-    #     return (f'Measurement(participant={self.participant}, '
-    #             f'age={self.age}, gender={self.gender})')
-
 
 class MeasurementMetadata(db.Model):
     __tablename__ = 'measurement_metadata'
@@ -134,7 +194,7 @@ class MeasurementMetadata(db.Model):
     substance = db.Column(db.String(length=100))
     lateralization = db.Column(db.String(length=30))
     startVal = db.Column(db.Float)
-    session = db.Column(db.String(length=100))
+    sessionName = db.Column(db.String(length=100))
     date = db.Column(db.String(length=100))
 
     measurementId = db.Column(db.Integer, db.ForeignKey('measurements.id'))
@@ -145,7 +205,7 @@ class Trial(db.Model):
     __tablename__ = 'trials'
 
     id = db.Column(db.Integer, primary_key=True)
-    trialNumber = db.Column(db.Integer, default=1)
+    number = db.Column(db.Integer, default=1)
     concentration = db.Column(db.Float)
     sampleNumber = db.Column(db.Integer)
     stimulusOrder = db.Column(db.String(length=100))
@@ -155,12 +215,6 @@ class Trial(db.Model):
 
     measurementId = db.Column(db.Integer, db.ForeignKey('measurements.id'))
     measurement = db.relationship('Measurement', back_populates='trials')
-
-    # def __repr__(self):
-    #     return (f'Trial(trialNumber={self.trialNumber}, '
-    #             f'concentration={self.concentration}, '
-    #             f'jar={self.jar}, '
-    #             f'responseCorrect={self.responseCorrect})')
 
 
 class StaircaseHandler(db.Model):
@@ -172,38 +226,6 @@ class StaircaseHandler(db.Model):
     measurementId = db.Column(db.Integer, db.ForeignKey('measurements.id'))
     measurement = db.relationship('Measurement',
                                   back_populates='staircaseHandler')
-
-
-class User(db.Model):
-    __tablename__ = 'users'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(length=30))
-    email = db.Column(db.String(length=100))
-    password = db.Column(db.String(length=100))
-    authenticated = db.Column(db.Boolean, default=False)
-    registrationDateUtc = db.Column(db.DateTime)
-    lastLoginDateUtc = db.Column(db.DateTime)
-    emailConfirmed = db.Column(db.Boolean, default=False)
-    emailConfirmedDateUtc = db.Column(db.DateTime)
-
-    measurements = db.relationship('Measurement',
-                                   back_populates='user',
-                                   cascade='all, delete, delete-orphan')
-
-    def is_active(self):
-        return self.emailConfirmed
-
-    def get_id(self):
-        # We MUST return a unicode object.
-        return str(self.id)
-
-    def is_authenticated(self):
-        return self.authenticated
-
-    def is_anonymous(self):
-        """False, as anonymous users aren't supported."""
-        return False
 
 
 @login_manager.user_loader
