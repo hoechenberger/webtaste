@@ -29,7 +29,8 @@ class App extends Component {
   //   // this.startMeasurement();
   // };
 
-  onMetadataSubmit = (metadata) => this.setState({
+  onStartupSubmit = (studyId, metadata) => this.setState({
+    studyId: studyId,
     metadata: metadata
   });
 
@@ -74,7 +75,7 @@ class App extends Component {
             <Route path="/startup" exact
                    render={() => (
                        <Startup
-                           onMetadataSubmit={this.onMetadataSubmit}
+                           onSubmit={this.onStartupSubmit}
                            loggedIn={this.state.loggedIn}/>
                    )}
             />
@@ -82,6 +83,7 @@ class App extends Component {
                    render={() => (
                        <Measurement
                            loggedIn={this.state.loggedIn}
+                           studyId={this.state.studyId}
                            metadata={this.state.metadata}
                            onRestart={this.resetState} />
                    )}

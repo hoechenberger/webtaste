@@ -28,7 +28,7 @@ class Api(Resource):
             'links': {
                 'registration': '/api/register',
                 'login': '/api/login',
-                'measurements': '/api/measurements/',
+                'studies': '/api/studies/',
             }
         }
 
@@ -170,27 +170,167 @@ class Logout(Resource):
         return f'User {username} successfully logged out.', 200
 
 
-@api.route('/api/measurements/')
-class MeasurementWithoutIdApi(Resource):
+@api.route('/api/studies/')
+class StudiesWithoutIdApi(Resource):
     @login_required
     def get(self):
+        """Retrieve existing studies.
+        """
+        studies = models.Study.query.all()
+        data = marshal(studies, fields=models.study)
+
+        for study in data:
+            study_id = study['id']
+
+            study['links'] = {
+                'studies': f'/api/studies/',
+                'measurements': f'/api/studies/{study_id}/measurements/',
+                'self': f'/api/studies/{study_id}'
+            }
+
+        data = {
+            'data': {
+                'studies': data,
+                'links': {'self': f'/api/studies/'}
+            }
+        }
+
+        return data
+
+    @api.doc(responses={409: 'Conflict'})
+    @api.expect(models.study_new)
+    @login_required
+    def post(self):
+        """Create a new study.
+        """
+        print('Creating new study …')
+        payload = request.json
+
+        models.study_new.validate(payload)
+
+        name = payload['name']
+
+        mask = models.Study.name == name
+        existing_study = (models.Study
+                          .query
+                          .filter(mask)
+                          .first())
+
+        if existing_study is not None:  # This study name already exists
+            return {}, 409
+
+        user = current_user
+        study = models.Study(name=name, user=user)
+
+        db.session.add(study)
+        db.session.commit()
+
+        data = marshal(study, models.study)
+        study_id = study.id
+
+        data['links'] = {
+            'measurements': f'/api/studies/{study_id}/measurements/',
+            'self': f'/api/studies/{study_id}'
+        }
+
+        response = {'data': data}
+        return response, 201
+
+    @api.doc(responses={200: 'Success',
+                        404: 'Resource not found'})
+    @login_required
+    def delete(self, measurement_number):
+        """Delete a running staircase.
+        """
+        mask = models.Measurement.number == measurement_number
+        measurement = (models.Measurement
+                       .query
+                       .filter(mask)
+                       .first())
+
+        if measurement is None:
+            abort(404)
+        else:
+            db.session.delete(measurement)
+            db.session.commit()
+            return {}
+
+
+@api.route('/api/studies/<int:study_id>')
+class StudiesApi(Resource):
+    @api.doc(responses={200: 'Success',
+                        404: 'Resource not found'})
+    @login_required
+    def get(self, study_id):
+        """Retrieve information about a running staircase.
+        """
+        mask = models.Study.id == study_id
+        study = (models.Measurement
+                 .query
+                 .filter(mask)
+                 .first())
+
+        if study is None:
+            abort(404)
+        else:
+            data = marshal(study, models.study)
+            data['links'] = {
+                'measurements': f'/api/studies/{study_id}/measurements/',
+                'self': f'/api/studies/{study_id}'
+            }
+
+            response = {'data': data}
+            return response
+
+    @api.doc(responses={200: 'Success',
+                        404: 'Resource not found'})
+    @login_required
+    def delete(self, study_id):
+        """Delete a running staircase.
+        """
+        mask = models.Study.id== study_id
+        study = (models.Study
+                 .query
+                 .filter(mask)
+                 .first())
+
+        if study is None:
+            abort(404)
+        else:
+            db.session.delete(study)
+            db.session.commit()
+            return {}
+
+
+@api.route('/api/studies/<int:study_id>/measurements/')
+class MeasurementWithoutIdApi(Resource):
+    @login_required
+    def get(self, study_id):
         """Retrieve an array of running staircases.
         """
-        measurements = models.Measurement.query.all()
+        mask = models.Study.id == study_id
+        study = (models.Study
+                 .query
+                 .filter(mask)
+                 .first())
+
+        measurements = study.measurements
         data = marshal(measurements, fields=models.measurement)
 
         for measurement in data:
-            measurement_id = measurement['id']
+            measurement_number = measurement.number
 
             measurement['links'] = {
-                'measurements': f'/api/measurements/',
-                'trials': f'/api/measurements/{measurement_id}/trials/',
-                'self': f'/api/measurements/{measurement_id}'
+                'measurements': f'/api/studies/{study_id}/measurements/',
+                'trials': f'/api/studies/{study_id}/measurements/'
+                          f'{measurement_number}/trials/',
+                'self': f'/api/studies/{study_id}/measurements/'
+                        f'{measurement_number}'
             }
 
         data = {
             'data': data,
-            'links': {'self': f'/api/measurements/'}
+            'links': {'self': f'/api/studies/{study_id}/measurements/'}
         }
 
         return data
@@ -198,7 +338,7 @@ class MeasurementWithoutIdApi(Resource):
     @api.expect(models.measurement_metadata)
     @api.doc(responses={201: 'Created'})
     @login_required
-    def post(self):
+    def post(self, study_id):
         """Create new staircase.
         """
         print('Creating new staircase …')
@@ -241,7 +381,21 @@ class MeasurementWithoutIdApi(Resource):
         staircase_handler.originPath = ''
         staircase_handler.origin = ''
 
+        mask = models.Study.id == study_id
+        study = (models.Study
+                 .query
+                 .filter(mask)
+                 .first())
+
+        if not study.measurements:
+            measurement_number = 1
+        else:
+            measurement_number = study.measurements[-1].number + 1
+
         measurement = models.Measurement()
+        measurement.number = measurement_number
+        measurement.study = study
+
         metadata_ = models.MeasurementMetadata(**metadata)
         metadata_.measurement = measurement
 
@@ -249,36 +403,37 @@ class MeasurementWithoutIdApi(Resource):
             staircaseHandler=json_tricks.dumps(staircase_handler))
         staircase_handler.measurement = measurement
 
-        db.session.add_all([measurement, metadata_,
-                            staircase_handler])
+        db.session.add_all([study, measurement, metadata_, staircase_handler])
         db.session.commit()
 
-        measurement_id = measurement.id
         data = marshal(models.Measurement
                        .query
-                       .order_by(models.Measurement.id.desc())
+                       .order_by(models.Measurement.number.desc())
                        .first(),
                        fields=models.measurement)
 
         data['links'] = {
-            'measurements': f'/api/measurements/',
-            'trials': f'/api/measurements/{measurement_id}/trials/',
-            'self': f'/api/measurements/{measurement_id}'
+            'measurements': f'/api/studies/{study_id}/measurements/',
+            'trials': f'/api/studies/{study_id}/measurements/'
+                      f'{measurement_number}/trials/',
+            'self': f'/api/studies/{study_id}/measurements/'
+                    f'{measurement_number}'
         }
 
         response = {'data': data}
         return response, 201, {'Location': data['links']['self']}
 
 
-@api.route('/api/measurements/<int:measurement_id>')
+@api.route('/api/studies/<int:study_id>/measurements/<int:measurement_number>')
 class MeasurementWithIdApi(Resource):
     @api.doc(responses={200: 'Success',
                         404: 'Resource not found'})
     @login_required
-    def get(self, measurement_id):
+    def get(self, study_id, measurement_number):
         """Retrieve information about a running staircase.
         """
-        mask = models.Measurement.id == measurement_id
+        mask = ((models.Measurement.studyId == study_id) &
+                (models.Measurement.number == measurement_number))
         measurement = (models.Measurement
                        .query
                        .filter(mask)
@@ -289,9 +444,11 @@ class MeasurementWithIdApi(Resource):
         else:
             data = marshal(measurement, models.measurement)
             data['links'] = {
-                'measurements': f'/api/measurements/',
-                'trials': f'/api/measurements/{measurement_id}/trials/',
-                'self': f'/api/measurements/{measurement_id}/'
+                'measurements': f'/api/studies/{study_id}/measurements/',
+                'trials': f'/api/studies/{study_id}/measurements/'
+                          f'{measurement_number}/trials/',
+                'self': f'/api/studies/{study_id}/measurements/'
+                        f'{measurement_number}'
             }
 
             response = {'data': data}
@@ -300,10 +457,11 @@ class MeasurementWithIdApi(Resource):
     @api.doc(responses={200: 'Success',
                         404: 'Resource not found'})
     @login_required
-    def delete(self, measurement_id):
+    def delete(self, study_id, measurement_number):
         """Delete a running staircase.
         """
-        mask = models.Measurement.id == measurement_id
+        mask = ((models.Measurement.study.id == study_id) &
+                (models.Measurement.number == measurement_number))
         measurement = (models.Measurement
                        .query
                        .filter(mask)
@@ -317,48 +475,57 @@ class MeasurementWithIdApi(Resource):
             return {}
 
 
-@api.route('/api/measurements/<int:measurement_id>/trials/')
+@api.route('/api/studies/<int:study_id>'
+           '/measurements/<int:measurement_number>'
+           '/trials/')
 class TrialsWithoutNumber(Resource):
     @api.doc(responses={200: 'Success',
                         404: 'Resource not found'})
     @login_required
-    def get(self, measurement_id):
+    def get(self, study_id, measurement_number):
         """Retrieve all trials in a measurement.
         """
-        mask = models.Measurement.id == measurement_id
-        measurement = (models.Measurement
-                       .query
-                       .filter(mask)
-                       .first())
+        mask = ((models.Trial.measurement.study.id == study_id) &
+                (models.Trial.measurement.number == measurement_number))
+        trials = (models.Trial
+                  .query
+                  .filter(mask)
+                  .first())
 
-        if measurement is None:
+        if trials is None:
             abort(404)
         else:
-            mask = models.Trial.measurementId == measurement_id
-            trials = (models.Trial
-                      .query
-                      .filter(mask)
-                      .all())
+            # mask = models.Trial.measurementId == measurement_id
+            # trials = (models.Trial
+            #           .query
+            #           .filter(mask)
+            #           .all())
 
             data = marshal(trials, models.trial_server_response)
 
             for trial in data:
-                trial_number = trial['trialNumber']
+                trial_number = trial.number
 
                 trial['links'] = {
-                    'measurement': f'/api/measurements/{measurement_id}',
-                    'measurements': f'/api/measurements/',
-                    'trials': f'/api/measurements/{measurement_id}/trials/',
-                    'self': f'/api/measurements/{measurement_id}/{trial_number}'
+                    'measurement': f'/api/studies/{study_id}/measurements/'
+                                   f'{measurement_number}',
+                    'measurements': f'/api/studies/{study_id}/measurements/',
+                    'trials': f'/api/studies/{study_id}/measurements/'
+                              f'{measurement_number}/trials/',
+                    'self': f'/api/studies/{study_id}/measurements/'
+                            f'{measurement_number}/{trial_number}'
                 }
 
             response = {
                 'data': {
                     'trials': data,
                     'links': {
-                        'measurement': f'/api/measurements/{measurement_id}',
-                        'measurements': f'/api/measurements/',
-                        'self': f'/api/measurements/{measurement_id}/trials/'
+                        'measurement': f'/api/studies/{study_id}/'
+                                       f'measurements/{measurement_number}',
+                        'measurements': f'/api/studies/{study_id}/'
+                                        f'measurements/',
+                        'self': f'/api/studies/{study_id}/'
+                                f'measurements/{measurement_number}/trials/'
                     }
                 }
             }
@@ -371,10 +538,11 @@ class TrialsWithoutNumber(Resource):
                         404: 'Resource not found',
                         412: 'Precondition failed'})
     @login_required
-    def post(self, measurement_id):
+    def post(self, study_id, measurement_number):
         """Create a new trial.
         """
-        mask = models.Measurement.id == measurement_id
+        mask = ((models.Measurement.studyId == study_id) &
+                (models.Measurement.number == measurement_number))
         measurement = (models.Measurement
                        .query
                        .filter(mask)
@@ -397,7 +565,7 @@ class TrialsWithoutNumber(Resource):
                 # Trial has not been updated with a response to far
                 abort(412)
 
-            trial_number = previous_trial.trialNumber + 1
+            trial_number = previous_trial.number + 1
 
         # Find the intensity / concentration we have actually prepared.
         concentration_steps = gen_concentration_steps(modality, substance)
@@ -457,7 +625,7 @@ class TrialsWithoutNumber(Resource):
                         sample_number -= 1
                         concentration = concentration_steps[sample_number - 1]
 
-            trial = models.Trial(trialNumber=trial_number,
+            trial = models.Trial(number=trial_number,
                                  concentration=concentration,
                                  sampleNumber=sample_number,
                                  stimulusOrder=json_tricks.dumps(stimulus_order),
@@ -480,10 +648,13 @@ class TrialsWithoutNumber(Resource):
             data['stimulusOrder'] = json_tricks.loads(data['stimulusOrder'])
 
             data['links'] = {
-                'measurements': f'/api/measurements/',
-                'measurement': f'/api/measurements/{measurement_id}/',
-                'trials': f'/api/measurements/{measurement_id}/trials/',
-                'self': f'/api/measurements/{measurement_id}/trials/{trial_number}'
+                'measurements': f'/api/studies/{study_id}/measurements/',
+                'measurement': f'/api/studies/{study_id}/measurements/'
+                               f'{measurement_number}/',
+                'trials': f'/api/studies/{study_id}/measurements/'
+                          f'{measurement_number}/trials/',
+                'self': f'/api/studies/{study_id}/measurements/'
+                        f'{measurement_number}/trials/{trial_number}'
             }
 
             response = {'data': data}
@@ -498,19 +669,22 @@ class TrialsWithoutNumber(Resource):
             return response
 
 
-@api.route('/api/measurements/'
-           '<int:measurement_id>/trials/<int:trial_number>')
+@api.route('/api/studies/<int:study_id>/'
+           'measurements/<int:measurement_number>/'
+           'trials/<int:trial_number>')
 class TrialsWithNumber(Resource):
     @api.doc(responses={200: 'Success',
                         404: 'Resource not found'})
     @login_required
-    def get(self, measurement_id, trial_number):
+    def get(self, study_id, measurement_number, trial_number):
         """Retrieve a specific trial.
         """
+        mask = ((models.Trial.measurement.study.id == study_id) &
+                (models.Trial.measurement.number == measurement_number) &
+                (models.Trial.number == trial_number))
         trial = (models.Trial
                  .query
-                 .filter((models.Trial.measurementId == measurement_id) &
-                         (models.Trial.trialNumber == trial_number))
+                 .filter(mask)
                  .first())
 
         if trial is None:
@@ -520,10 +694,13 @@ class TrialsWithNumber(Resource):
             data['stimulusOrder'] = json_tricks.loads(data['stimulusOrder'])
 
             data['links'] = {
-                'measurements': f'/api/measurements/',
-                'measurement': f'/api/measurements/{measurement_id}/',
-                'trials': f'/api/measurements/{measurement_id}/trials/',
-                'self': f'/api/measurements/{measurement_id}/trials/{trial_number}'
+                'measurements': f'/api/studies/{study_id}/measurements/',
+                'measurement': f'/api/studies/{study_id}/measurements/'
+                               f'{measurement_number}/',
+                'trials': f'/api/studies/{study_id}/measurements/'
+                          f'{measurement_number}/trials/',
+                'self': f'/api/studies/{study_id}/measurements/'
+                        f'{measurement_number}/trials/{trial_number}'
             }
 
             response = {'data': data}
@@ -534,58 +711,67 @@ class TrialsWithNumber(Resource):
                         405: 'Method Not Allowed',
                         404: 'Resource not found'})
     @login_required
-    def put(self, measurement_id, trial_number):
+    def put(self, study_id, measurement_number, trial_number):
         """Add a response.
         """
         payload = request.json
         models.trial_participant_response.validate(payload)
 
+        mask = ((models.Measurement.studyId == study_id) &
+                (models.Measurement.number == measurement_number))
+        measurement = (models.Measurement
+                       .query
+                       .filter(mask)
+                       .first())
+
+        if measurement is None:
+            abort(404)
+
+        mask = ((models.Trial.measurementId == measurement.id) &
+                (models.Trial.number == trial_number))
         trial = (models.Trial
                  .query
-                 .filter((models.Trial.measurementId == measurement_id) &
-                         (models.Trial.trialNumber == trial_number))
+                 .filter(mask)
                  .first())
-
-        staircase_handler = (models.Measurement
-                             .query
-                             .filter(models.Measurement.id == measurement_id)
-                             .first()
-                             .staircaseHandler)
 
         if trial is None:
             abort(404)
-        else:
-            # Only allow updating of the current trial, and only if it hasn't
-            # been updated already.
-            staircase_handler_ = json_tricks.loads(staircase_handler.staircaseHandler)
 
-            if ((trial.trialNumber != trial.measurement.currentTrialNumber) or
-                    (len(staircase_handler_.data) >= trial.trialNumber)):
-                return {}, 405, {'Allow': 'GET'}
+        # Only allow updating of the current trial, and only if it hasn't
+        # been updated already.
+        staircase_handler = trial.measurement.staircaseHandler
+        staircase_handler_ = json_tricks.loads(staircase_handler.staircaseHandler)
 
-            trial.responseCorrect = payload['responseCorrect']
-            trial.response = payload['response']
+        if ((trial.number != trial.measurement.currentTrialNumber) or
+                (len(staircase_handler_.data) >= trial.number)):
+            return {}, 405, {'Allow': 'GET'}
 
-            staircase_handler_.addResponse(int(payload['responseCorrect']),
-                                           intensity=trial.concentration)
-            staircase_handler_.addOtherData('Response', payload['response'])
-            staircase_handler.staircaseHandler = json_tricks.dumps(staircase_handler_)
+        trial.responseCorrect = payload['responseCorrect']
+        trial.response = payload['response']
 
-            db.session.add_all([trial, staircase_handler])
-            db.session.commit()
+        staircase_handler_.addResponse(int(payload['responseCorrect']),
+                                       intensity=trial.concentration)
+        staircase_handler_.addOtherData('Response', payload['response'])
+        staircase_handler.staircaseHandler = json_tricks.dumps(staircase_handler_)
 
-            data = marshal(trial, models.trial_server_response)
-            data['stimulusOrder'] = json_tricks.loads(data['stimulusOrder'])
+        db.session.add_all([trial, staircase_handler])
+        db.session.commit()
 
-            data['links'] = {
-                'measurements': f'/api/measurements/',
-                'measurement': f'/api/measurements/{measurement_id}/',
-                'trials': f'/api/measurements/{measurement_id}/trials/',
-                'self': f'/api/measurements/{measurement_id}/trials/{trial_number}'
-            }
+        data = marshal(trial, models.trial_server_response)
+        data['stimulusOrder'] = json_tricks.loads(data['stimulusOrder'])
 
-            response = {'data': data}
-            return response
+        data['links'] = {
+            'measurements': f'/api/studies/{study_id}/measurements/',
+            'measurement': f'/api/studies/{study_id}/measurements/'
+                           f'{measurement_number}/',
+            'trials': f'/api/studies/{study_id}/measurements/'
+                      f'{measurement_number}/trials/',
+            'self': f'/api/studies/{study_id}/measurements/'
+                    f'{measurement_number}/trials/{trial_number}'
+        }
+
+        response = {'data': data}
+        return response
 
 
 def _gen_quest_plot_gustatory(participant, modality, substance, lateralization,
@@ -862,12 +1048,12 @@ def _gen_quest_report_olfactory(measurement):
     return filename_xlsx, f
 
 
-@api.route('/api/measurements/<int:measurement_id>/report')
+@api.route('/api/measurements/<int:measurement_number>/report')
 class Report(Resource):
-    def get(self, measurement_id):
+    def get(self, measurement_number):
         """Retrieve reports and logfiles of an experimental run.
         """
-        mask = models.Measurement.id == measurement_id
+        mask = models.Measurement.number == measurement_number
         measurement = (models.Measurement
                        .query
                        .filter(mask)

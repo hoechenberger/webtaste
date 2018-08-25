@@ -56,6 +56,7 @@ body {
   text-align: left;
 }
 
+.study-info-card,
 .participant-info-card,
 .measurement-settings-card,
 .login-card,
@@ -67,6 +68,7 @@ body {
   margin: 1em 0 0 0;
 }
 
+.study-info-card .card-header,
 .participant-info-card .card-header,
 .measurement-settings-card .card-header,
 .login-card .card-header,

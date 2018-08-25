@@ -90,16 +90,30 @@ class Startup extends Component {
     substance: "",
     lateralization: "",
     startVal: "",
-    session: "",
+    sessionName: "",
+    studies: [],
+    studyName: "",
+    newStudyName: "",
     date: ""
   };
 
-  componentDidMount = () => {
+  componentDidMount = async () => {
     if (!this.props.loggedIn) {
       this.props.history.push('/');
       return
     }
-    this.restoreStateFromLocalStorage();
+
+    await this.restoreStateFromLocalStorage();
+    this.getStudiesFromApi();
+
+    // Must be empty in case the user created a new study in the previous run,
+    // otherwise we will try to create a new study on each startup.
+    if (this.state.newStudyName !== "") {
+        this.setState({
+          studyName: "",
+          newStudyName: ""});
+    }
+
   };
 
   componentDidUpdate = () => {
@@ -138,8 +152,55 @@ class Startup extends Component {
     }
   };
 
-  handleSubmit = (e) => {
+  getStudiesFromApi = async () => {
+    const uri = '/api/studies/';
+    const response = await fetch(uri, {
+      method: 'get',
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json'
+      },
+      credentials: 'same-origin'
+    });
+
+    const json = await response.json();
+    this.setState({studies: json.data.studies});
+  };
+
+  createNewStudy = async () => {
+    const uri = '/api/studies/';
+    const payload = {name: this.state.newStudyName};
+
+    const response = await fetch(uri, {
+      method: 'post',
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload),
+      credentials: 'same-origin'
+    });
+
+    const json = await response.json();
+    return json.data.id;
+  };
+
+  handleSubmit = async (e) => {
     e.preventDefault();
+
+    let studyId;
+
+    // Create a new study if the selected study does not exist already;
+    // otherwise, recover the Study ID from the array of studies we have
+    // populated earlier.
+    if (this.state.newStudyName) {
+      studyId = await this.createNewStudy();
+    } else {
+      let study = this.state.studies.filter(
+          (study) => study.name === this.state.studyName
+      );
+      studyId = study[0].id;
+    }
 
     let metadata = {
       participant: this.state.participant,
@@ -149,7 +210,9 @@ class Startup extends Component {
       algorithm: this.state.algorithm,
       substance: this.state.substance,
       lateralization: this.state.lateralization,
-      session: this.state.session,
+      sessionName: this.state.sessionName,
+      studyName: this.state.newStudyName ?
+          this.state.newStudyName : this.state.studyName,
       // Don't forget to add the current date & time :-)
       date: new Date().toUTCString()
     };
@@ -159,7 +222,7 @@ class Startup extends Component {
     }
 
     this.saveStateToLocalStorage();
-    this.props.onMetadataSubmit(metadata);
+    this.props.onSubmit(studyId, metadata);
     this.props.history.push('/measurement')
   };
 
@@ -217,8 +280,20 @@ class Startup extends Component {
   };
 
   handleSessionChange = (e) => {
-    this.setState({session: e.target.value});
+    this.setState({sessionName: e.target.value});
   };
+
+  handleStudyChange = (e) => {
+    this.setState({
+      studyName: e.target.value,
+      newStudyName: ""
+    })
+  };
+
+  handleNewStudyChange = (e) => {
+    this.setState({newStudyName: e.target.value});
+  };
+
 
   handleStartValChange = (e) => {
     const startVal = e.target.value;
@@ -238,11 +313,48 @@ class Startup extends Component {
     return (
       <div className="measurement-info">
         <Form method="post"
-            onSubmit={this.handleSubmit}
-            className="measurement-info-form">
+              onSubmit={this.handleSubmit}
+              className="measurement-info-form">
+          <Card className="study-info-card">
+            <CardHeader onClick={this.toggleParticipantInfoCard}>
+              Study Info
+            </CardHeader>
+            <CardBody>
+              <FormGroup>
+                <Label for="study" className="input-label-required">
+                  Study name
+                </Label>
+                <Tooltip text="The name of the study this measurement belongs to."
+                         id="tooltip-study"/>
+
+                <Input type="select" name="study" id="study"
+                       value={this.state.studyName}
+                       onChange={this.handleStudyChange}
+                       required>
+                  <option disabled value="" hidden>– select –</option>
+                  <option value="_new">Create new …</option>
+                  {this.state.studies.map(
+                      (study) => <option>{study.name}</option>)}
+                </Input>
+              </FormGroup>
+
+              {this.state.studyName === "_new"
+                  ? (<FormGroup>
+                    <Label for="study-new" className="input-label-required">
+                      Create new study
+                    </Label>
+                    <Input name="study-new" id="study-new"
+                           placeholder="e.g. NIH Grant 123"
+                           value={this.state.newStudyName}
+                           onChange={this.handleNewStudyChange}/>
+                  </FormGroup>)
+                  : null
+              }
+            </CardBody>
+          </Card>
           <Card className="participant-info-card">
             <CardHeader onClick={this.toggleParticipantInfoCard}>
-                Participant Info
+              Participant Info
             </CardHeader>
             <Collapse isOpen={this.state.participantInfoCardIsOpen}>
               <CardBody>
@@ -387,15 +499,16 @@ class Startup extends Component {
                            id="tooltip-session"/>
                   <Input name="session" id="session"
                          placeholder="e.g. Test, Retest"
-                         value={this.state.session}
-                         onChange={this.handleSessionChange} />
-                         {/*required />*/}
+                         value={this.state.sessionName}
+                         onChange={this.handleSessionChange}
+                         required />
                 </FormGroup>
+
               </CardBody>
             </Collapse>
           </Card>
-            <Button color='success' className="start-button" size="lg"
-                    block>Start</Button>
+          <Button color='success' className="start-button" size="lg"
+                  block>Start</Button>
         </Form>
       </div>
     );

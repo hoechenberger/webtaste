@@ -49,7 +49,9 @@ class TrialPlot extends Component {
 
 class DownloadReportButton extends Component {
   _getQuestReportFromApi = async () => {
-    const uri = '/api/measurements/' + this.props.measurementId + '/report';
+    const uri = `/api/studies/${this.props.studyId}
+                 /measurements/${this.props.measurementId}/report`;
+
     const response = await fetch(uri, {
       method: 'get',
       headers: {
@@ -154,7 +156,7 @@ class Measurement extends Component {
       return
     }
 
-    this.startMeasurement(this.props.metadata);
+    this.startMeasurement(this.props.studyId, this.props.metadata);
   };
 
   componentDidUpdate = () => {
@@ -191,8 +193,10 @@ class Measurement extends Component {
         })
   };
 
-  startMeasurement = async (metadata) => {
-    const response = await fetch('/api/measurements/', {
+  startMeasurement = async (studyId, metadata) => {
+    const uri = `/api/studies/${this.props.studyId}` +
+                `/measurements/`;
+    const response = await fetch(uri, {
       method: 'post',
       headers: {
         'Accept': 'application/json, text/plain, */*',
@@ -205,7 +209,7 @@ class Measurement extends Component {
     const r = await response.json();
 
     this.setState({
-      measurementId: r.data.id,
+      measurementId: r.data.number,
       measurementStarted: r.data.started,
       measurementFinished: r.data.finished,
       trialsCompletedCount: 0,
@@ -218,7 +222,9 @@ class Measurement extends Component {
   };
 
   createNewTrial = async () => {
-    const uri = '/api/measurements/' + this.state.measurementId + '/trials/';
+    const uri = `/api/studies/${this.props.studyId}` +
+                 `/measurements/${this.state.measurementId}` +
+                 `/trials/`;
     const response = await fetch(uri, {
       method: 'post',
       headers: {
@@ -247,7 +253,8 @@ class Measurement extends Component {
   };
 
   getThreshold = async () => {
-    const uri = '/api/measurements/' + this.state.measurementId;
+    const uri = `/api/studies/${this.props.studyId}` +
+                `/measurements/${this.state.measurementId}`;
     const response = await fetch(uri, {
       method: 'get',
       headers: {
@@ -262,7 +269,9 @@ class Measurement extends Component {
   };
 
   submitGustatoryParticipantResponse = async (participantResponse) => {
-    const uri = '/api/measurements/' + this.state.measurementId + '/trials/' + this.state.currentTrialNumber;
+    const uri = `/api/studies/${this.props.studyId}` +
+                `/measurements/${this.state.measurementId}/` +
+                `/trials/${this.state.currentTrialNumber}`;
 
     const payload = {
       response: "",
@@ -290,7 +299,10 @@ class Measurement extends Component {
   };
 
   submitOlfactoryParticipantResponse = async (penIndex, ) => {
-    const uri = '/api/measurements/' + this.state.measurementId + '/trials/' + this.state.currentTrialNumber;
+    const uri = `/api/studies/${this.props.studyId}` +
+                `/measurements/${this.state.measurementId}/` +
+                `/trials/${this.state.currentTrialNumber}`;
+
     const responseCorrect = penIndex === this.state.correctResponseIndex;
 
     const payload = {
@@ -320,7 +332,8 @@ class Measurement extends Component {
 
 
   _deleteMeasurement = async () => {
-    const uri = '/api/measurements/' + this.state.measurementId;
+    const uri = `/api/${this.props.studyId}` +
+                `/measurements/${this.state.measurementId}`;
 
     await fetch(uri, {
       method: 'delete',
@@ -475,7 +488,7 @@ class Measurement extends Component {
           <small>
             Substance: {this.props.metadata.substance},
             Lateralization: {this.props.metadata.lateralization},
-            Session: {this.props.metadata.session}
+            Session: {this.props.metadata.sessionName}
           </small>
           <br/><br/>
         </div>
