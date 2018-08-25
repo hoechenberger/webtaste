@@ -176,7 +176,15 @@ class StudiesWithoutIdApi(Resource):
     def get(self):
         """Retrieve existing studies.
         """
-        studies = models.Study.query.all()
+        user = current_user
+        user_id = user.id
+
+        mask = models.Study.userId == user_id
+        studies = (models.Study
+                   .query
+                   .filter(mask)
+                   .all())
+
         data = marshal(studies, fields=models.study)
 
         for study in data:
@@ -210,7 +218,11 @@ class StudiesWithoutIdApi(Resource):
 
         name = payload['name']
 
-        mask = models.Study.name == name
+        user = current_user
+        user_id = user.id
+
+        mask = ((models.Study.userId == user_id) &
+                (models.Study.name == name))
         existing_study = (models.Study
                           .query
                           .filter(mask)
@@ -219,9 +231,7 @@ class StudiesWithoutIdApi(Resource):
         if existing_study is not None:  # This study name already exists
             return {}, 409
 
-        user = current_user
         study = models.Study(name=name, user=user)
-
         db.session.add(study)
         db.session.commit()
 
@@ -242,7 +252,12 @@ class StudiesWithoutIdApi(Resource):
     def delete(self, measurement_number):
         """Delete a running staircase.
         """
-        mask = models.Measurement.number == measurement_number
+
+        user = current_user
+        user_id = user.id
+
+        mask = ((models.Study.userId == user_id) &
+                (models.Measurement.number == measurement_number))
         measurement = (models.Measurement
                        .query
                        .filter(mask)
@@ -264,7 +279,11 @@ class StudiesApi(Resource):
     def get(self, study_id):
         """Retrieve information about a running staircase.
         """
-        mask = models.Study.id == study_id
+        user = current_user
+        user_id = user.id
+
+        mask = ((models.Study.userId == user_id) &
+                (models.Study.id == study_id))
         study = (models.Measurement
                  .query
                  .filter(mask)
@@ -288,7 +307,11 @@ class StudiesApi(Resource):
     def delete(self, study_id):
         """Delete a running staircase.
         """
-        mask = models.Study.id== study_id
+        user = current_user
+        user_id = user.id
+
+        mask = ((models.Study.userId == user_id) &
+                (models.Study.id == study_id))
         study = (models.Study
                  .query
                  .filter(mask)
@@ -308,7 +331,11 @@ class MeasurementWithoutIdApi(Resource):
     def get(self, study_id):
         """Retrieve an array of running staircases.
         """
-        mask = models.Study.id == study_id
+        user = current_user
+        user_id = user.id
+
+        mask = ((models.Study.userId == user_id) &
+                (models.Study.id == study_id))
         study = (models.Study
                  .query
                  .filter(mask)
@@ -381,7 +408,11 @@ class MeasurementWithoutIdApi(Resource):
         staircase_handler.originPath = ''
         staircase_handler.origin = ''
 
-        mask = models.Study.id == study_id
+        user = current_user
+        user_id = user.id
+
+        mask = ((models.Study.userId == user_id) &
+                (models.Study.id == study_id))
         study = (models.Study
                  .query
                  .filter(mask)
@@ -442,6 +473,12 @@ class MeasurementWithIdApi(Resource):
         if measurement is None:
             abort(404)
         else:
+            user = current_user
+            user_id = user.id
+
+            if measurement.study.userId != user_id:
+                abort(403)
+
             data = marshal(measurement, models.measurement)
             data['links'] = {
                 'measurements': f'/api/studies/{study_id}/measurements/',
@@ -470,6 +507,12 @@ class MeasurementWithIdApi(Resource):
         if measurement is None:
             abort(404)
         else:
+            user = current_user
+            user_id = user.id
+
+            if measurement.study.userId != user_id:
+                abort(403)
+
             db.session.delete(measurement)
             db.session.commit()
             return {}
@@ -485,12 +528,29 @@ class TrialsWithoutNumber(Resource):
     def get(self, study_id, measurement_number):
         """Retrieve all trials in a measurement.
         """
-        mask = ((models.Trial.measurement.study.id == study_id) &
-                (models.Trial.measurement.number == measurement_number))
-        trials = (models.Trial
-                  .query
-                  .filter(mask)
-                  .first())
+        user = current_user
+        user_id = user.id
+
+        mask = models.Study.userId == user_id
+        study = (models.Study
+                 .query
+                 .filter(mask)
+                 .first())
+
+        if study is None:
+            abort(403)
+
+        mask = ((models.Measurement.studyId == study_id) &
+                (models.Measurement.number == measurement_number))
+        measurement = (models.Measurement
+                       .query
+                       .filter(mask)
+                       .first())
+
+        if measurement is None:
+            abort(404)
+
+        trials = measurement.trials
 
         if trials is None:
             abort(404)
@@ -500,11 +560,10 @@ class TrialsWithoutNumber(Resource):
             #           .query
             #           .filter(mask)
             #           .all())
-
             data = marshal(trials, models.trial_server_response)
 
             for trial in data:
-                trial_number = trial.number
+                trial_number = trial['trialNumber']
 
                 trial['links'] = {
                     'measurement': f'/api/studies/{study_id}/measurements/'
@@ -541,6 +600,18 @@ class TrialsWithoutNumber(Resource):
     def post(self, study_id, measurement_number):
         """Create a new trial.
         """
+        user = current_user
+        user_id = user.id
+
+        mask = models.Study.userId == user_id
+        study = (models.Study
+                 .query
+                 .filter(mask)
+                 .first())
+
+        if study is None:
+            abort(403)
+
         mask = ((models.Measurement.studyId == study_id) &
                 (models.Measurement.number == measurement_number))
         measurement = (models.Measurement
@@ -679,6 +750,18 @@ class TrialsWithNumber(Resource):
     def get(self, study_id, measurement_number, trial_number):
         """Retrieve a specific trial.
         """
+        user = current_user
+        user_id = user.id
+
+        mask = models.Study.userId == user_id
+        study = (models.Study
+                 .query
+                 .filter(mask)
+                 .first())
+
+        if study is None:
+            abort(403)
+
         mask = ((models.Trial.measurement.study.id == study_id) &
                 (models.Trial.measurement.number == measurement_number) &
                 (models.Trial.number == trial_number))
@@ -714,6 +797,18 @@ class TrialsWithNumber(Resource):
     def put(self, study_id, measurement_number, trial_number):
         """Add a response.
         """
+        user = current_user
+        user_id = user.id
+
+        mask = models.Study.userId == user_id
+        study = (models.Study
+                 .query
+                 .filter(mask)
+                 .first())
+
+        if study is None:
+            abort(403)
+
         payload = request.json
         models.trial_participant_response.validate(payload)
 
@@ -1055,6 +1150,18 @@ class Report(Resource):
     def get(self, measurement_number):
         """Retrieve reports and logfiles of an experimental run.
         """
+        user = current_user
+        user_id = user.id
+
+        mask = models.Study.userId == user_id
+        study = (models.Study
+                 .query
+                 .filter(mask)
+                 .first())
+
+        if study is None:
+            abort(403)
+
         mask = models.Measurement.number == measurement_number
         measurement = (models.Measurement
                        .query
