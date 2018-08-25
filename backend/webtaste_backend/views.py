@@ -1048,7 +1048,9 @@ def _gen_quest_report_olfactory(measurement):
     return filename_xlsx, f
 
 
-@api.route('/api/measurements/<int:measurement_number>/report')
+@api.route('/api/studies/<int:study_id>'
+           '/measurements/<int:measurement_number>'
+           '/report')
 class Report(Resource):
     def get(self, measurement_number):
         """Retrieve reports and logfiles of an experimental run.
