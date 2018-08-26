@@ -167,7 +167,7 @@ class Measurement(db.Model):
     study = db.relationship('Study', back_populates='measurements')
 
     number = db.Column(db.Integer, default=1)
-    state = db.Column(db.String(length='20'))
+    state = db.Column(db.String(length=20))
     trialsCompletedCount = db.Column(db.Integer)
     currentTrialNumber = db.Column(db.Integer)
 
