@@ -345,7 +345,7 @@ class MeasurementWithoutIdApi(Resource):
         data = marshal(measurements, fields=models.measurement)
 
         for measurement in data:
-            measurement_number = measurement.number
+            measurement_number = measurement['number']
 
             measurement['links'] = {
                 'measurements': f'/api/studies/{study_id}/measurements/',
@@ -438,11 +438,7 @@ class MeasurementWithoutIdApi(Resource):
         db.session.add_all([study, measurement, metadata_, staircase_handler])
         db.session.commit()
 
-        data = marshal(models.Measurement
-                       .query
-                       .order_by(models.Measurement.number.desc())
-                       .first(),
-                       fields=models.measurement)
+        data = marshal(measurement, fields=models.measurement)
 
         data['links'] = {
             'measurements': f'/api/studies/{study_id}/measurements/',
