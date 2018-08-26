@@ -341,8 +341,25 @@ class Measurement extends Component {
     })
   };
 
+  _abortMeasurement = async () => {
+    const uri = `/api/${this.props.studyId}` +
+        `/measurements/${this.state.measurementId}`;
+    const payload = JSON.stringify({state: 'aborted'});
+
+    await fetch(uri, {
+      method: 'put',
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json'
+      },
+      body: payload,
+      credentials: 'same-origin'
+    })
+  };
+
   abortMeasurement = async () => {
-    await this._deleteMeasurement();
+    // await this._deleteMeasurement();
+    await this._abortMeasurement();
     this.props.onRestart();
   };
 
@@ -357,7 +374,7 @@ class Measurement extends Component {
                                toggle={this.toggleConfirmRestartModal}
                                onConfirm={this.abortMeasurement}
                                header='Abort Measurement'
-                               body='Would you like to abort the current measurement?'
+                               body='Would you like to abort the current measurement?\n\nTheData will still be saved.'
                                confirmButtonText='Abort Measurement'/>
           <strong>Please present jar {this.state.sampleNumber}. </strong><br />
           Did the participant successfully recognize this concentration?<br /><br />
@@ -435,7 +452,7 @@ class Measurement extends Component {
                                toggle={this.toggleConfirmRestartModal}
                                onConfirm={this.abortMeasurement}
                                header='Abort Measurement'
-                               body='Would you like to abort the current measurement?'
+                               body='Would you like to abort the current measurement?\n\nTheData will still be saved.'
                                confirmButtonText='Abort Measurement'/>
           <strong>Please present triade number {this.state.sampleNumber} in the displayed order. </strong><br />
           Which Sniffin' Stick did the participant identify?<br /><br />

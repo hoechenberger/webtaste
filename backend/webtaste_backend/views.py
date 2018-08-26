@@ -426,6 +426,7 @@ class MeasurementWithoutIdApi(Resource):
         measurement = models.Measurement()
         measurement.number = measurement_number
         measurement.study = study
+        measurement.state = 'created'
 
         metadata_ = models.MeasurementMetadata(**metadata)
         metadata_.measurement = measurement
@@ -490,6 +491,58 @@ class MeasurementWithIdApi(Resource):
 
             response = {'data': data}
             return response
+
+    @api.expect(models.measurement_state)
+    @login_required
+    def put(self, study_id, measurement_number):
+        """Alter state of a measurement.
+        """
+        payload = request.json
+        models.measurement_state.validate(payload)
+
+        state = payload['state']
+
+        mask = models.Study.id == study_id
+        study = (models.Study
+                 .query
+                 .filter(mask)
+                 .first())
+
+        if study is None:
+            abort(404)
+        else:
+            user = current_user
+            user_id = user.id
+
+            if study.userId != user_id:
+                abort(403)
+
+        mask = ((models.Measurement.studyId == study_id) &
+                (models.Measurement.number == measurement_number))
+        measurement = (models.Measurement
+                       .query
+                       .filter(mask)
+                       .first())
+
+        if measurement is None:
+            abort(404)
+
+        measurement.state = state
+        db.session.add(measurement)
+        db.session.commit()
+
+        data = marshal(measurement, models.measurement)
+        data['links'] = {
+            'measurements': f'/api/studies/{study_id}/measurements/',
+            'trials': f'/api/studies/{study_id}/measurements/'
+                      f'{measurement_number}/trials/',
+            'self': f'/api/studies/{study_id}/measurements/'
+                    f'{measurement_number}'
+        }
+
+        response = {'data': data}
+        return response
+
 
     @api.doc(responses={200: 'Success',
                         404: 'Resource not found'})
@@ -629,6 +682,7 @@ class TrialsWithoutNumber(Resource):
 
         if not measurement.trials:
             trial_number = 1
+            measurement.state = 'running'
         else:
             previous_trial = measurement.trials[-1]
 
@@ -732,7 +786,7 @@ class TrialsWithoutNumber(Resource):
             return response, 201, {'Location': data['links']['self']}
         else:
             measurement.threshold = threshold
-            measurement.finished = True
+            measurement.state = 'finished'
             db.session.add(measurement)
             db.session.commit()
 
