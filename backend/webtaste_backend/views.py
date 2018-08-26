@@ -782,6 +782,32 @@ class TrialsWithoutNumber(Resource):
             return response, 201, {'Location': data['links']['self']}
         else:
             measurement.threshold = threshold
+
+            # Find sample number corresponding to threshold
+
+            # Find nearest concentration
+            idx = np.abs(concentration_steps - threshold).argmin()
+
+            # Difference > 0: threshold is LOWER than concentration,
+            # i.e. to be found at a higher dilution step
+            # Difference < 0: threshold is HIGHER than concentration,
+            # i.e. to be found at a lower dilution step
+
+            diff = concentration_steps[idx] - threshold
+
+            # Relative difference, i.e., in numbers of dilutions steps.
+            diff_abs = np.abs(diff)
+            diff_rel = diff_abs / (concentration_steps[0] -
+                                   concentration_steps[1])
+
+            if diff > 0:
+                threshold_sample_num = idx + 1 + diff_rel
+            elif diff < 0:
+                threshold_sample_num = idx + 1 - diff_rel
+            else:
+                threshold_sample_num = idx + 1
+
+            measurement.thresholdSampleNumber = threshold_sample_num
             measurement.state = 'finished'
             db.session.add(measurement)
             db.session.commit()
@@ -1011,7 +1037,8 @@ def _gen_quest_report_gustation(measurement):
     gender = measurement.metadata_.gender,
     substance =measurement.metadata_.substance,
     lateralization = measurement.metadata_.lateralization,
-    session = measurement.metadata_.session,
+    study = measurement.study.name,
+    session = measurement.metadata_.sessionName,
     trials = list(range(1, len(responses) + 1))
     modality = 'gustatory'
     method = 'QUEST'
@@ -1023,6 +1050,8 @@ def _gen_quest_report_gustation(measurement):
     time_zone = 'GMT'
 
     threshold = q.mean()
+    threshold_sample_num = measurement.thresholdSampleNumber
+
     data_threshold = pd.DataFrame(
         dict(
             Participant=participant[0],
@@ -1032,9 +1061,11 @@ def _gen_quest_report_gustation(measurement):
             Substance=substance[0],
             Lateralization=lateralization[0],
             Method=method,
+            Study=study[0],
             Session=session[0],
             Threshold=threshold,
             Threshold_Unit=concentration_unit,
+            Threshold_Sample_Number=threshold_sample_num,
             Date=date_utc,
             Time_Zone=time_zone),
         index=[0])
@@ -1047,6 +1078,7 @@ def _gen_quest_report_gustation(measurement):
              Substance=substance[0],
              Lateralization=lateralization[0],
              Method=method,
+             Study=study[0],
              Session=session[0],
              Trial=trials,
              Jar=jars,
@@ -1108,7 +1140,8 @@ def _gen_quest_report_olfactory(measurement):
     gender = measurement.metadata_.gender,
     substance = measurement.metadata_.substance,
     lateralization = measurement.metadata_.lateralization,
-    session = measurement.metadata_.session,
+    study = measurement.study.name,
+    session = measurement.metadata_.sessionName,
     trials = list(range(1, len(responses) + 1))
     modality = 'olfactory'
     method = 'QUEST'
@@ -1120,6 +1153,7 @@ def _gen_quest_report_olfactory(measurement):
     time_zone = 'GMT'
 
     threshold = q.mean()
+    threshold_sample_num = measurement.thresholdSampleNumber
     data_threshold = pd.DataFrame(
         dict(
             Participant=participant[0],
@@ -1129,9 +1163,11 @@ def _gen_quest_report_olfactory(measurement):
             Substance=substance[0],
             Lateralization=lateralization[0],
             Method=method,
+            Study=study[0],
             Session=session[0],
             Threshold=threshold,
             Threshold_Unit=concentration_unit,
+            Threshold_Sample_Number=threshold_sample_num,
             Date=date_utc,
             Time_Zone=time_zone),
         index=[0])
@@ -1144,6 +1180,7 @@ def _gen_quest_report_olfactory(measurement):
              Substance=substance[0],
              Lateralization=lateralization[0],
              Method=method,
+             Study=study[0],
              Session=session[0],
              Trial=trials,
              Triade_Number=triade_no,
@@ -1187,6 +1224,7 @@ def _gen_quest_report_olfactory(measurement):
                      f'{substance[0].replace(" " , "-")}_'
                      f'{lateralization[0].split(" ")[0]}_'
                      f'{method}_'
+                     f'{study[0]}_'
                      f'{session[0]}')
 
     filename_xlsx = filename_base + '.xlsx'
@@ -1197,13 +1235,14 @@ def _gen_quest_report_olfactory(measurement):
            '/measurements/<int:measurement_number>'
            '/report')
 class Report(Resource):
-    def get(self, measurement_number):
+    def get(self, study_id, measurement_number):
         """Retrieve reports and logfiles of an experimental run.
         """
         user = current_user
         user_id = user.id
 
-        mask = models.Study.userId == user_id
+        mask = ((models.Study.userId == user_id) &
+                (models.Study.id == study_id))
         study = (models.Study
                  .query
                  .filter(mask)
@@ -1212,7 +1251,8 @@ class Report(Resource):
         if study is None:
             abort(403)
 
-        mask = models.Measurement.number == measurement_number
+        mask = ((models.Measurement.studyId == study_id) &
+                (models.Measurement.number == measurement_number))
         measurement = (models.Measurement
                        .query
                        .filter(mask)
@@ -1233,7 +1273,7 @@ class Report(Resource):
             print(filename_xlsx)
             r = Response(
                 f,
-                mimetype='text/csv',
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 headers={'Content-Disposition': f'attachment; '
                                                 f'filename={filename_xlsx}'})
 

@@ -85,6 +85,9 @@ measurement = api.model('Measurement', {
     'trials': Nested(trial_server_response),
     'metadata': Nested(measurement_metadata, attribute='metadata_'),
     'threshold': Float(description='The estimated threshold'),
+    'thresholdSampleNumber': Float(description='The estimated threshold, '
+                                               'in sample numbers (dilution '
+                                               'steps)'),
     'study': Nested(study)
 })
 
@@ -184,6 +187,7 @@ class Measurement(db.Model):
                                 cascade='all, delete, delete-orphan')
 
     threshold = db.Column(db.Float)
+    thresholdSampleNumber = db.Column(db.Float)
 
 
 class MeasurementMetadata(db.Model):

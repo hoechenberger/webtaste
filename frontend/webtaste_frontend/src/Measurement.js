@@ -49,8 +49,8 @@ class TrialPlot extends Component {
 
 class DownloadReportButton extends Component {
   _getQuestReportFromApi = async () => {
-    const uri = `/api/studies/${this.props.studyId}
-                 /measurements/${this.props.measurementId}/report`;
+    const uri = `/api/studies/${this.props.studyId}` +
+                `/measurements/${this.props.measurementId}/report`;
 
     const response = await fetch(uri, {
       method: 'get',
@@ -142,6 +142,7 @@ class Measurement extends Component {
     stimulusOrder: null,
     correctResponseIndex: null,
     threshold: null,
+    thresholdSampleNumber: null,
     showConfirmRestartModal: false,
     responseButtonsEnabled: false
   };
@@ -212,7 +213,8 @@ class Measurement extends Component {
       measurementState: r.data.state,
       trialsCompletedCount: 0,
       currentTrialNumber: null,
-      threshold: null
+      threshold: null,
+      thresholdSampleNumber: null
     });
 
     await this.createNewTrial();
@@ -263,7 +265,12 @@ class Measurement extends Component {
     });
 
     const json = await response.json();
-    return json.data.threshold;
+    const data = {
+      threshold: json.data.threshold,
+      thresholdSampleNumber: json.data.thresholdSampleNumber
+    };
+
+    return data;
   };
 
   submitGustatoryParticipantResponse = async (participantResponse) => {
@@ -288,10 +295,11 @@ class Measurement extends Component {
 
     const newTrial = await this.createNewTrial();
     if (!newTrial) {
-      const threshold = await this.getThreshold();
+      const thresholdData = await this.getThreshold();
       this.setState({
         measurementState: 'finished',
-        threshold: threshold
+        threshold: thresholdData.threshold,
+        thresholdSampleNumber: thresholdData.thresholdSampleNumber
       })
     }
   };
@@ -320,10 +328,11 @@ class Measurement extends Component {
 
     const newTrial = await this.createNewTrial();
     if (!newTrial) {
-      const threshold = await this.getThreshold();
+      const thresholdData = await this.getThreshold();
       this.setState({
         measurementState: 'finished',
-        threshold: threshold
+        threshold: thresholdData.threshold,
+        thresholdSampleNumber: thresholdData.thresholdSampleNumber
       })
     }
   };
@@ -393,8 +402,9 @@ class Measurement extends Component {
                                confirmButtonText='New Measurement'/>
 
           <strong>Measurement completed.</strong><br />
-          Threshold estimate: <strong>{this.state.threshold.toFixed(3)} {this.getThresholdUnit()}</strong><br /><br />
+          Threshold estimate: <strong>{this.state.threshold.toFixed(1)} {this.getThresholdUnit()}</strong><br /><br />
           <DownloadReportButton
+              studyId={this.props.studyId}
               measurementId={this.state.measurementId}
           />{' '}
           <Button color="danger"
@@ -467,8 +477,9 @@ class Measurement extends Component {
                                confirmButtonText='New Measurement'/>
 
           <strong>Measurement completed.</strong><br />
-          Threshold estimate: <strong>{this.state.threshold.toFixed(3)} {this.getThresholdUnit()}</strong><br /><br />
+          Threshold estimate: <strong>Stick {this.state.thresholdSampleNumber.toFixed(2)} ({this.state.threshold.toFixed(3)} {this.getThresholdUnit()})</strong><br /><br />
           <DownloadReportButton
+              studyId={this.props.studyId}
               measurementId={this.state.measurementId}
           />{' '}
           <Button color="danger"
