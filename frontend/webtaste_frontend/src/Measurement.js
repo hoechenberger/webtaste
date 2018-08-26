@@ -49,8 +49,8 @@ class TrialPlot extends Component {
 
 class DownloadReportButton extends Component {
   _getQuestReportFromApi = async () => {
-    const uri = `/api/studies/${this.props.studyId}
-                 /measurements/${this.props.measurementId}/report`;
+    const uri = `/api/studies/${this.props.studyId}` +
+                `/measurements/${this.props.measurementId}/report`;
 
     const response = await fetch(uri, {
       method: 'get',
@@ -135,14 +135,14 @@ class SniffinStick extends Component {
 class Measurement extends Component {
   state = {
     measurementId: null,
-    measurementStarted: null,
-    measurementFinished: null,
+    measurementState: null,
     trialsCompletedCount: 0,
     concentrations: [],
     sampleNumber: null,
     stimulusOrder: null,
     correctResponseIndex: null,
     threshold: null,
+    thresholdSampleNumber: null,
     showConfirmRestartModal: false,
     responseButtonsEnabled: false
   };
@@ -210,11 +210,11 @@ class Measurement extends Component {
 
     this.setState({
       measurementId: r.data.number,
-      measurementStarted: r.data.started,
-      measurementFinished: r.data.finished,
+      measurementState: r.data.state,
       trialsCompletedCount: 0,
       currentTrialNumber: null,
-      threshold: null
+      threshold: null,
+      thresholdSampleNumber: null
     });
 
     await this.createNewTrial();
@@ -244,7 +244,7 @@ class Measurement extends Component {
         // https://stackoverflow.com/a/37002941/1944216
         concentrations: [...prevState.concentrations, json.data.concentration],
         currentTrialNumber: json.data.trialNumber,
-        measurementStarted: true
+        measurementState: 'running'
       }));
       return true
     } else {
@@ -265,7 +265,12 @@ class Measurement extends Component {
     });
 
     const json = await response.json();
-    return json.data.threshold;
+    const data = {
+      threshold: json.data.threshold,
+      thresholdSampleNumber: json.data.thresholdSampleNumber
+    };
+
+    return data;
   };
 
   submitGustatoryParticipantResponse = async (participantResponse) => {
@@ -290,10 +295,11 @@ class Measurement extends Component {
 
     const newTrial = await this.createNewTrial();
     if (!newTrial) {
-      const threshold = await this.getThreshold();
+      const thresholdData = await this.getThreshold();
       this.setState({
-        measurementFinished: true,
-        threshold: threshold
+        measurementState: 'finished',
+        threshold: thresholdData.threshold,
+        thresholdSampleNumber: thresholdData.thresholdSampleNumber
       })
     }
   };
@@ -322,17 +328,18 @@ class Measurement extends Component {
 
     const newTrial = await this.createNewTrial();
     if (!newTrial) {
-      const threshold = await this.getThreshold();
+      const thresholdData = await this.getThreshold();
       this.setState({
-        measurementFinished: true,
-        threshold: threshold
+        measurementState: 'finished',
+        threshold: thresholdData.threshold,
+        thresholdSampleNumber: thresholdData.thresholdSampleNumber
       })
     }
   };
 
 
   _deleteMeasurement = async () => {
-    const uri = `/api/${this.props.studyId}` +
+    const uri = `/api/studies/${this.props.studyId}` +
                 `/measurements/${this.state.measurementId}`;
 
     await fetch(uri, {
@@ -342,8 +349,8 @@ class Measurement extends Component {
   };
 
   _abortMeasurement = async () => {
-    const uri = `/api/${this.props.studyId}` +
-        `/measurements/${this.state.measurementId}`;
+    const uri = `/api/studies/${this.props.studyId}` +
+                `/measurements/${this.state.measurementId}`;
     const payload = JSON.stringify({state: 'aborted'});
 
     await fetch(uri, {
@@ -368,13 +375,13 @@ class Measurement extends Component {
   );
 
   renderGustatoryButtons = () => {
-    const buttons = !this.state.measurementFinished ? (
+    const buttons = (this.state.measurementState !== 'finished') ? (
         <div>
           <ConfirmRestartModal show={this.state.showConfirmRestartModal}
                                toggle={this.toggleConfirmRestartModal}
                                onConfirm={this.abortMeasurement}
                                header='Abort Measurement'
-                               body='Would you like to abort the current measurement?\n\nTheData will still be saved.'
+                               body='Would you like to abort the current measurement? TheData will still be saved.'
                                confirmButtonText='Abort Measurement'/>
           <strong>Please present jar {this.state.sampleNumber}. </strong><br />
           Did the participant successfully recognize this concentration?<br /><br />
@@ -395,8 +402,9 @@ class Measurement extends Component {
                                confirmButtonText='New Measurement'/>
 
           <strong>Measurement completed.</strong><br />
-          Threshold estimate: <strong>{this.state.threshold.toFixed(3)} {this.getThresholdUnit()}</strong><br /><br />
+          Threshold estimate: <strong>{this.state.threshold.toFixed(1)} {this.getThresholdUnit()}</strong><br /><br />
           <DownloadReportButton
+              studyId={this.props.studyId}
               measurementId={this.state.measurementId}
           />{' '}
           <Button color="danger"
@@ -446,13 +454,13 @@ class Measurement extends Component {
   };
 
   renderOlfactoryButtons = () => {
-    const buttons = !this.state.measurementFinished ? (
+    const buttons = (this.state.measurementState !== 'finished') ? (
         <div>
           <ConfirmRestartModal show={this.state.showConfirmRestartModal}
                                toggle={this.toggleConfirmRestartModal}
                                onConfirm={this.abortMeasurement}
                                header='Abort Measurement'
-                               body='Would you like to abort the current measurement?\n\nTheData will still be saved.'
+                               body='Would you like to abort the current measurement? TheData will still be saved.'
                                confirmButtonText='Abort Measurement'/>
           <strong>Please present triade number {this.state.sampleNumber} in the displayed order. </strong><br />
           Which Sniffin' Stick did the participant identify?<br /><br />
@@ -469,8 +477,9 @@ class Measurement extends Component {
                                confirmButtonText='New Measurement'/>
 
           <strong>Measurement completed.</strong><br />
-          Threshold estimate: <strong>{this.state.threshold.toFixed(3)} {this.getThresholdUnit()}</strong><br /><br />
+          Threshold estimate: <strong>Stick {this.state.thresholdSampleNumber.toFixed(2)} ({this.state.threshold.toFixed(3)} {this.getThresholdUnit()})</strong><br /><br />
           <DownloadReportButton
+              studyId={this.props.studyId}
               measurementId={this.state.measurementId}
           />{' '}
           <Button color="danger"
@@ -531,7 +540,7 @@ class Measurement extends Component {
                   ylabel='Concentration in log10 %'
               />)}
         </div>
-        {!this.state.measurementFinished ?
+        {this.state.measurementState !== 'finished' ?
           <div className='abort-button'>
             <Button color="danger"
                     onClick={this.toggleConfirmRestartModal}>Abort</Button>
