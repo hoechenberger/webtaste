@@ -275,7 +275,7 @@ class Measurement extends Component {
 
   submitGustatoryParticipantResponse = async (participantResponse) => {
     const uri = `/api/studies/${this.props.studyId}` +
-                `/measurements/${this.state.measurementId}/` +
+                `/measurements/${this.state.measurementId}` +
                 `/trials/${this.state.currentTrialNumber}`;
 
     const payload = {
@@ -306,7 +306,7 @@ class Measurement extends Component {
 
   submitOlfactoryParticipantResponse = async (penIndex, ) => {
     const uri = `/api/studies/${this.props.studyId}` +
-                `/measurements/${this.state.measurementId}/` +
+                `/measurements/${this.state.measurementId}` +
                 `/trials/${this.state.currentTrialNumber}`;
 
     const responseCorrect = penIndex === this.state.correctResponseIndex;
