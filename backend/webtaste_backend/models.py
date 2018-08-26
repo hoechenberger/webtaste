@@ -76,10 +76,8 @@ study = api.model('Study', {
 
 measurement = api.model('Measurement', {
     'number': Integer(description='Measurement Number', required=True),
-    'started': Boolean(description='Staircase started', default=False,
-                       required=True),
-    'finished': Boolean(description='Staircase finished', default=False,
-                        required=True),
+    'state': String(description='State of the measurement', required=True,
+                    enum=['created', 'running', 'finished', 'aborted']),
     'trialsCompletedCount': Integer(description='Number of completed trials',
                                     default=0, required=True),
     'currentTrialNumber': Integer(description='Number of the current trial',
@@ -89,6 +87,12 @@ measurement = api.model('Measurement', {
     'threshold': Float(description='The estimated threshold'),
     'study': Nested(study)
 })
+
+measurement_state = api.model('Measurement', {
+    'state': String(description='State of the measurement', required=True,
+                    enum=['created', 'running', 'finished', 'aborted'])
+})
+
 
 
 user_registration = api.model('User Registration', {
@@ -160,7 +164,7 @@ class Measurement(db.Model):
     study = db.relationship('Study', back_populates='measurements')
 
     number = db.Column(db.Integer, default=1)
-    finished = db.Column(db.Boolean)
+    state = db.Column(db.String(length='20'))
     trialsCompletedCount = db.Column(db.Integer)
     currentTrialNumber = db.Column(db.Integer)
 
