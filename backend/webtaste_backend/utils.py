@@ -167,11 +167,11 @@ def send_email(user, to_address, message_type, token=None):
 
         body = (f'Your account at sensory-testing.org was successfully '
                 f'activated.\n\n'
-                f'        User name: {user}.\n\n'
+                f'        User name: {user}\n\n'
                 f'If you have any questions, please do not hesitate to '
                 f'contact me at {from_address}.\n\n'
                 f'Enjoy the Science!\n\n'
-                f'    Richard')
+                f'      —Richard, on behalf of sensory-testing.org')
     else:
         raise ValueError('Invalid message_type specified.')
 
