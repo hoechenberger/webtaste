@@ -2,7 +2,8 @@ import React, { Component } from 'react';
 import 'url-search-params-polyfill';
 import { withRouter, Link } from 'react-router-dom'
 
-class EmailConfirmatation extends Component {
+
+class EmailConfirmation extends Component {
   state = {
     emailConfirmationSuccessful: null,
     emailAlreadyConfirmed: false
@@ -81,4 +82,4 @@ class EmailConfirmatation extends Component {
 }
 
 
-export default withRouter(EmailConfirmatation);
+export default withRouter(EmailConfirmation);
