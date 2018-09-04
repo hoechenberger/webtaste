@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import queryString from 'query-string';
+import 'url-search-params-polyfill';
 import { withRouter, Link } from 'react-router-dom'
 
 class EmailConfirmatation extends Component {
@@ -11,8 +11,8 @@ class EmailConfirmatation extends Component {
   componentDidMount = () => {this.confirmEmailViaApi()};
 
   confirmEmailViaApi = async () => {
-    const queryParams = queryString.parse(this.props.location.search);
-    const token = queryParams.token;
+    const queryParams = new URLSearchParams(this.props.location.search);
+    const token = queryParams.get("token");
 
     let emailConfirmationSuccessful;
     let emailAlreadyConfirmed;
