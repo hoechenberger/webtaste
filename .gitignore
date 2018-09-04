@@ -103,4 +103,5 @@ ENV/
 # PyCharm / WebStorm / IntelliJ settings
 .idea/
 
-docker/storage/*
+Docker/storage/*
+*.swp
