@@ -29,7 +29,7 @@ def find_nearest(a, a0):
 
 def gen_concentration_steps(modality, substance):
     """
-    Generate the concentration_steps for the used solutions, in log10 mol / L.
+    Generate the concentration_steps for the used solutions, in wt-%.
 
     Parameters
     ----------
