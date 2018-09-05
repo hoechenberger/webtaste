@@ -966,7 +966,7 @@ def _gen_quest_plot_gustatory(participant, modality, substance, lateralization,
     ax.set_xticks(np.arange(1, len(responses) + 1))
     ax.set_xlim((0.5, len(responses) + 0.5))
     ax.set_xlabel('Trial', fontsize=14)
-    ax.set_ylabel('Concentration in $\log_{10}}$ mol/L', fontsize=14)
+    ax.set_ylabel('Concentration in $\log_{10}}$ g/100 mL', fontsize=14)
     ax.legend(loc='best')
 
     t = (f'Threshold Estimation, Participant {participant}\n'
@@ -1030,7 +1030,7 @@ def _gen_quest_report_gustation(measurement):
     responses = q.data
 
     concentrations = q.otherData['Concentration']
-    concentration_unit = 'log10 mol/L'
+    concentration_unit = 'log10 g/100 mL'
     jars = q.otherData['Sample_Number']
     participant = measurement.metadata_.participant,
     age = measurement.metadata_.age
