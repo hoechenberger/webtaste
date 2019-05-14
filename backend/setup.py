@@ -8,6 +8,7 @@ setup(
     include_package_data=True,
     install_requires=[
         'flask', 'flask_restplus', 'flask-login', 'flask_sqlalchemy',
-        'passlib', 'itsdangerous', 'mysqlclient', 'xlsxwriter'
+        'passlib', 'itsdangerous', 'mysqlclient', 'xlsxwriter',
+        'json_tricks', 'matplotlib', 'future', 'psychopy'
     ],
 )

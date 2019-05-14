@@ -105,3 +105,5 @@ ENV/
 
 Docker/storage/*
 *.swp
+
+*.http
