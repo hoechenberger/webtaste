@@ -15,7 +15,7 @@ measurement_metadata = api.model('Measurement Metadata', {
     'modality': String(description='Modality', required=True,
                        enum=['gustatory', 'olfactory']),
     'algorithm': String(description='Algorithm', required=True,
-                        enum=['QUEST', 'Hummel']),
+                        enum=['QUEST+', 'QUEST', 'Hummel']),
     'substance': String(description='Substance', required=True,
                         enum=SUBSTANCES),
     'lateralization': String(description='Lateralization',

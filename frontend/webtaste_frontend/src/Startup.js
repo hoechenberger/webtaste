@@ -18,6 +18,7 @@ class AlgorithmInput extends Component {
                  onChange={this.props.onChange}
                  required>
             <option disabled value="" hidden>– select –</option>
+            <option>QUEST+</option>
             <option>QUEST</option>
           </Input>
       )

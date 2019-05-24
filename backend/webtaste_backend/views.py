@@ -5,7 +5,8 @@ from datetime import datetime
 from flask import request, abort, Response, make_response
 from flask_restplus import Resource, marshal
 from flask_login import login_required, login_user, logout_user, current_user
-from psychopy.data import QuestHandler
+from psychopy.data import QuestHandler, QuestPlusHandler
+from questplus import QuestPlus
 import random
 
 import numpy as np
@@ -399,6 +400,8 @@ class MeasurementWithoutIdApi(Resource):
         if metadata['modality'] == 'gustatory':
             if metadata['algorithm'] == 'QUEST':
                 staircase_handler = _init_quest_gustatory(metadata)
+            elif metadata['algorithm'] == 'QUEST+':
+                staircase_handler = _init_questplus_gustatory(metadata)
         elif metadata['modality'] == 'olfactory':
             if metadata['algorithm'] == 'QUEST':
                 staircase_handler = _init_quest_olfactory(metadata)
@@ -431,8 +434,12 @@ class MeasurementWithoutIdApi(Resource):
         metadata_ = models.MeasurementMetadata(**metadata)
         metadata_.measurement = measurement
 
-        staircase_handler = models.StaircaseHandler(
-            staircaseHandler=json_tricks.dumps(staircase_handler))
+        if metadata_.algorithm == 'QUEST+':
+            staircase_handler = models.StaircaseHandler(
+                staircaseHandler=staircase_handler.saveAsJson())
+        else:
+            staircase_handler = models.StaircaseHandler(
+                staircaseHandler=json_tricks.dumps(staircase_handler))
         staircase_handler.measurement = measurement
 
         db.session.add_all([study, measurement, metadata_, staircase_handler])
@@ -674,7 +681,14 @@ class TrialsWithoutNumber(Resource):
         staircase_handler = measurement.staircaseHandler
         modality = measurement.metadata_.modality
         substance = measurement.metadata_.substance
-        staircase_handler_ = json_tricks.loads(staircase_handler.staircaseHandler)
+
+        staircase_handler_ = (json_tricks
+                              .loads(staircase_handler.staircaseHandler))
+
+        # For QUEST+, we need to restore the questplus.QuestPlus object
+        if measurement.metadata_.algorithm == 'QUEST+':
+            staircase_handler_._qp = QuestPlus.from_json(staircase_handler_._qp_json)
+            del staircase_handler_._qp_json
 
         if not measurement.trials:
             trial_number = 1
@@ -696,16 +710,20 @@ class TrialsWithoutNumber(Resource):
             finished = False
         except StopIteration:
             finished = True
-            threshold = staircase_handler_.mean()
+            if measurement.metadata_.algorithm == 'QUEST+':
+                threshold = staircase_handler_.paramEstimates['threshold']
+            else:
+                threshold = staircase_handler_.mean()
 
         if not finished:
             concentration = find_nearest(concentration_steps,
                                          proposed_concentration)
             sample_number = get_sample_number(concentration_steps, concentration)
+            stimulus_order = []
+            correct_response_index = None
 
-            if (modality == 'gustatory'):
-                stimulus_order = []
-                correct_response_index = None
+            if (modality == 'gustatory' and
+                measurement.metadata_.algorithm != 'QUEST+'):
 
                 # If the concentration we selected is equal to the one previously presented ...
                 if ((trial_number > 1) and
@@ -758,8 +776,10 @@ class TrialsWithoutNumber(Resource):
             staircase_handler_.addOtherData('Sample_Number', sample_number)
             staircase_handler_.addOtherData('Stimulus_Order', stimulus_order)
 
-
-            staircase_handler.staircaseHandler = json_tricks.dumps(staircase_handler_)
+            if measurement.metadata_.algorithm == 'QUEST+':
+                staircase_handler.staircaseHandler = staircase_handler_.saveAsJson()
+            else:
+                staircase_handler.staircaseHandler = json_tricks.dumps(staircase_handler_)
             measurement.currentTrialNumber = trial_number
 
             db.session.add_all([measurement, trial, staircase_handler])
@@ -911,7 +931,13 @@ class TrialsWithNumber(Resource):
         # Only allow updating of the current trial, and only if it hasn't
         # been updated already.
         staircase_handler = trial.measurement.staircaseHandler
-        staircase_handler_ = json_tricks.loads(staircase_handler.staircaseHandler)
+        staircase_handler_ = (json_tricks
+                              .loads(staircase_handler.staircaseHandler))
+
+        # For QUEST+, we need to restore the questplus.QuestPlus object
+        if measurement.metadata_.algorithm == 'QUEST+':
+            staircase_handler_._qp = QuestPlus.from_json(staircase_handler_._qp_json)
+            del staircase_handler_._qp_json
 
         if ((trial.number != trial.measurement.currentTrialNumber) or
                 (len(staircase_handler_.data) >= trial.number)):
@@ -920,10 +946,23 @@ class TrialsWithNumber(Resource):
         trial.responseCorrect = payload['responseCorrect']
         trial.response = payload['response']
 
-        staircase_handler_.addResponse(int(payload['responseCorrect']),
-                                       intensity=trial.concentration)
+        if measurement.metadata_.algorithm == 'QUEST+':
+            if int(payload['responseCorrect']) == 1:
+                staircase_handler_.addResponse('Yes')
+            elif int(payload['responseCorrect']) == 0:
+                staircase_handler_.addResponse('No')
+            else:
+                raise ValueError('Received incorrectly encoded response.')
+        else:
+            staircase_handler_.addResponse(int(payload['responseCorrect']),
+                                           intensity=trial.concentration)
+
         staircase_handler_.addOtherData('Response', payload['response'])
-        staircase_handler.staircaseHandler = json_tricks.dumps(staircase_handler_)
+
+        if measurement.metadata_.algorithm == 'QUEST+':
+            staircase_handler.staircaseHandler = staircase_handler_.saveAsJson()
+        else:
+            staircase_handler.staircaseHandler = json_tricks.dumps(staircase_handler_)
 
         db.session.add_all([trial, staircase_handler])
         db.session.commit()
@@ -1030,7 +1069,7 @@ def _gen_quest_report_gustation(measurement):
     responses = q.data
 
     concentrations = q.otherData['Concentration']
-    concentration_unit = 'log10 g/100 mL'
+    concentration_unit = 'log10 mol/L'
     jars = q.otherData['Sample_Number']
     participant = measurement.metadata_.participant,
     age = measurement.metadata_.age
@@ -1041,7 +1080,7 @@ def _gen_quest_report_gustation(measurement):
     session = measurement.metadata_.sessionName,
     trials = list(range(1, len(responses) + 1))
     modality = 'gustatory'
-    method = 'QUEST'
+    method = measurement.metadata_.algorithm
     comments = q.otherData.get('Comment', '')
 
     dt_utc = datetime.strptime(measurement.metadata_.date,
@@ -1049,7 +1088,7 @@ def _gen_quest_report_gustation(measurement):
     date_utc = dt_utc.strftime('%Y-%m-%d %H:%M:%S')
     time_zone = 'GMT'
 
-    threshold = q.mean()
+    threshold = measurement.threshold
     threshold_sample_num = measurement.thresholdSampleNumber
 
     data_threshold = pd.DataFrame(
@@ -1091,6 +1130,109 @@ def _gen_quest_report_gustation(measurement):
 
     data_log.loc[data_log['Response'] == 0, 'Response'] = 'No'
     data_log.loc[data_log['Response'] == 1, 'Response'] = 'Yes'
+
+    figure = _gen_quest_plot_gustatory(participant=participant[0],
+                                       modality=modality,
+                                       substance=substance[0],
+                                       lateralization=lateralization[0],
+                                       method=method,
+                                       session=session[0],
+                                       concentrations=concentrations,
+                                       responses=data_log['Response'].values,
+                                       threshold=threshold)
+
+    f = BytesIO()
+    writer = pd.ExcelWriter(f, engine='xlsxwriter')
+    data_threshold.to_excel(writer, sheet_name='Threshold', index=False)
+    data_log.to_excel(writer, sheet_name='Log', index=False)
+
+    s = writer.sheets['Threshold']
+    s.insert_image('B7', 'Threshold_Plot.png', {'image_data': figure})
+
+    writer.save()
+    f.seek(0)
+
+    filename_base = (f'{participant[0]}_'
+                     f'{modality[:4]}_'
+                     f'{substance[0].replace(" " , "-")}_'
+                     f'{lateralization[0].split(" ")[0]}_'
+                     f'{method}_'
+                     f'{session[0]}')
+
+    filename_xlsx = filename_base + '.xlsx'
+    return filename_xlsx, f
+
+
+def _gen_questplus_report_gustation(measurement):
+    staircase_handler = json_tricks.loads(measurement.staircaseHandler.staircaseHandler)
+    staircase_handler._qp = QuestPlus.from_json(staircase_handler._qp_json)
+
+    q = staircase_handler
+    responses = q.data
+
+    concentrations = q.otherData['Concentration']
+    concentration_unit = 'log10 mol/L'
+    jars = q.otherData['Sample_Number']
+    participant = measurement.metadata_.participant,
+    age = measurement.metadata_.age
+    gender = measurement.metadata_.gender,
+    substance = measurement.metadata_.substance,
+    lateralization = measurement.metadata_.lateralization,
+    study = measurement.study.name,
+    session = measurement.metadata_.sessionName,
+    trials = list(range(1, len(responses) + 1))
+    modality = 'gustatory'
+    method = 'QUEST+'
+    comments = q.otherData.get('Comment', '')
+
+    dt_utc = datetime.strptime(measurement.metadata_.date,
+                               '%a, %d %b %Y %H:%M:%S %Z')
+    date_utc = dt_utc.strftime('%Y-%m-%d %H:%M:%S')
+    time_zone = 'GMT'
+
+    threshold = measurement.threshold
+    # slope  = q.paramEstimates['slope']
+    # fa_rate = q.paramEstimates['lower_asymptote']
+    # lapse_rate = q.paramEstimates['lapse_rate']
+
+    threshold_sample_num = measurement.thresholdSampleNumber
+
+    data_threshold = pd.DataFrame(
+        dict(
+            Participant=participant[0],
+            Age=age,
+            Gender=gender[0],
+            Modality=modality,
+            Substance=substance[0],
+            Lateralization=lateralization[0],
+            Method=method,
+            Study=study[0],
+            Session=session[0],
+            Threshold=threshold,
+            Threshold_Unit=concentration_unit,
+            Threshold_Sample_Number=threshold_sample_num,
+            Date=date_utc,
+            Time_Zone=time_zone),
+        index=[0])
+
+    data_log = pd.DataFrame(
+        dict(Participant=participant[0],
+             Age=age,
+             Gender=gender[0],
+             Modality=modality,
+             Substance=substance[0],
+             Lateralization=lateralization[0],
+             Method=method,
+             Study=study[0],
+             Session=session[0],
+             Trial=trials,
+             Jar=jars,
+             Concentration=concentrations,
+             Concentration_Unit=concentration_unit,
+             Response=responses,
+             Comment=comments,
+             Date=date_utc,
+             Time_Zone=time_zone))
 
     figure = _gen_quest_plot_gustatory(participant=participant[0],
                                        modality=modality,
@@ -1298,6 +1440,42 @@ def _init_quest_gustatory(metadata):
                      beta=3.5, gamma=0.01, delta=0.01, grain=0.01,
                      range=range_,
                      extraInfo=metadata)
+
+    return q
+
+
+def _init_questplus_gustatory(metadata):
+    modality = 'gustatory'
+    substance = metadata['substance']
+
+    concentration_steps = gen_concentration_steps(modality, substance)
+    thresholds = concentration_steps.copy()
+    slopes = np.linspace(0.5, 15, 5)
+    lower_asymptotes = np.linspace(0.01, 0.5, 5)
+    lapse_rates = (0.01,)
+    start_val = get_start_val(modality=modality, substance=substance)
+    max_trials = 20
+    responses = ('Yes', 'No')
+    stim_scale = 'log10'
+    stim_selection_method = 'minNEntropy'
+    stim_selection_options = dict(n=3, max_consecutive_reps=2)
+    param_estimation_method = 'mean'
+    func = 'weibull'
+
+    q = QuestPlusHandler(nTrials=max_trials,
+                         startIntensity=start_val,
+                         intensities=concentration_steps,
+                         thresholds=thresholds,
+                         slopes=slopes,
+                         lowerAsymptotes=lower_asymptotes,
+                         lapseRates=lapse_rates,
+                         responses=responses,
+                         func=func,
+                         stimScale=stim_scale,
+                         stimSelectionMethod=stim_selection_method,
+                         stimSelectionOptions=stim_selection_options,
+                         paramEstimationMethod=param_estimation_method,
+                         extraInfo=metadata)
 
     return q
 
