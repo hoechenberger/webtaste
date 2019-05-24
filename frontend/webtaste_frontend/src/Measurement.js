@@ -532,7 +532,7 @@ class Measurement extends Component {
           {this.props.metadata.modality === "gustatory" ? (
               <TrialPlot
                   concentrations={this.state.concentrations}
-                  ylabel='Concentration in log10 g/100 mL'
+                  ylabel={'Concentration in log10 mol/L'}
               />
           ) : (
               <TrialPlot
