@@ -9,6 +9,6 @@ setup(
     install_requires=[
         'flask', 'flask_restplus', 'flask-login', 'flask_sqlalchemy',
         'passlib', 'itsdangerous', 'mysqlclient', 'xlsxwriter',
-        'json_tricks', 'matplotlib', 'future', 'psychopy'
+        'json_tricks', 'matplotlib', 'future', 'psychopy', 'questplus'
     ],
 )

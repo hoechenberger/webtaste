@@ -29,7 +29,8 @@ def find_nearest(a, a0):
 
 def gen_concentration_steps(modality, substance):
     """
-    Generate the concentration_steps for the used solutions, in wt-%.
+    Generate the concentration_steps for the used solutions, in log10 mol/L
+    for gustatory and in log10 percent for  olfactory stimuli.
 
     Parameters
     ----------
@@ -41,27 +42,31 @@ def gen_concentration_steps(modality, substance):
 
     Returns
     -------
-    concentration_steps : dict
-        Dictionary of dilutions steps.
+    concentration_steps : np.ndarray
+        The concentration steps.
 
     """
     if modality == 'gustatory':
         if substance == 'sucrose':
-            return np.log10(np.geomspace(20,
-                                         0.002510803515528001,
-                                         num=14))
+            # return np.log10(np.geomspace(20,
+            #                              0.002510803515528001,
+            #                              num=14))
+            return np.flipud(np.arange(-4.25, -0.25+0.25, 0.25))
         elif substance == 'citric acid':
-            return np.log10(np.geomspace(0.9,
-                                         0.00029031200707790503,
-                                         num=14))
+            # return np.log10(np.geomspace(0.9,
+            #                              0.00029031200707790503,
+            #                              num=14))
+            return np.flipud(np.arange(-4.8, -1.3+0.25, 0.25))
         elif substance == 'sodium chloride':
-            return np.log10(np.geomspace(2,
-                                         0.002,
-                                         num=12))
+            # return np.log10(np.geomspace(2,
+            #                              0.002,
+            #                              num=12))
+            return np.flipud(np.arange(-3.5, -0.5+0.25, 0.25))
         elif substance == 'quinine hydrochloride':
-            return np.log10(np.geomspace(0.12255644907247643,
-                                         1.5000000000000004e-05,
-                                         num=18))
+            # return np.log10(np.geomspace(0.12255644907247643,
+            #                              1.5000000000000004e-05,
+            #                              num=18))
+            return np.flipud(np.arange(-6.75, -2.5+0.25, 0.25))
         else:
             raise ValueError('Invalid substance specified.')
     elif modality == 'olfactory':
