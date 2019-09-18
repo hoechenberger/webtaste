@@ -24,7 +24,8 @@ services:
       - env/db.env
     restart: always
     ports:
-      - "3306:3306"
+      - target: 3306
+        published: 3306
     volumes:
      - ${PWD}/storage/db:/var/lib/mysql
 
@@ -49,8 +50,9 @@ services:
       context: ../backend
       dockerfile: ${PWD}/Dockerfile-flask
     image: hoechenberger/webtaste-flask:latest
-    expose:
-      - 8000
+    ports:
+      - target: 8000
+        published: 8000
     env_file:
       - env/flask.env
 
