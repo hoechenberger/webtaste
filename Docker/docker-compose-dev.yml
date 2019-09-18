@@ -23,8 +23,8 @@ services:
     env_file:
       - env/db.env
     restart: always
-    expose:
-      - 3306
+    ports:
+      - "3306:3306"
     volumes:
      - ${PWD}/storage/db:/var/lib/mysql
 
