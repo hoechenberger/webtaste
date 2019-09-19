@@ -188,6 +188,9 @@ class Measurement(db.Model):
 
     threshold = db.Column(db.Float)
     thresholdSampleNumber = db.Column(db.Float)
+    slope = db.Column(db.Float)
+    lowerAsymptote = db.Column(db.Float)
+    lapseRate = db.Column(db.Float)
 
 
 class MeasurementMetadata(db.Model):
