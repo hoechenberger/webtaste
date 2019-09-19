@@ -47,5 +47,40 @@ serializer_for_email_confirmation = URLSafeSerializer(
 from . import views
 db.create_all()  # We must do this AFTER importing views.
 
+# In development mode, make sure we can log in!
+if app.config['ENV'] == 'development':
+    from datetime import datetime
+    from .models import User
+
+    app.config.update(
+        SENSORY_TESTING_DEFAULT_USER=os.environ.get('SENSORY_TESTING_DEFAULT_USER'),
+        SENSORY_TESTING_DEFAULT_PASSWORD=os.environ.get('SENSORY_TESTING_DEFAULT_PASSWORD'),
+        SENSORY_TESTING_DEFAULT_EMAIL=os.environ.get('SENSORY_TESTING_DEFAULT_EMAIL')
+    )
+
+    user_name = app.config['SENSORY_TESTING_DEFAULT_USER']
+    email = app.config['SENSORY_TESTING_DEFAULT_EMAIL']
+    password_hash = crypto_context.hash(app.config['SENSORY_TESTING_DEFAULT_PASSWORD'])
+    date = datetime.utcnow()
+
+    mask = User.name == user_name
+    existing_user = (User
+                     .query
+                     .filter(mask)
+                     .first())
+
+    # Only create user if it doesn't exist already.
+    if existing_user is None:
+        user = User(name=user_name,
+                    password=password_hash,
+                    email=email,
+                    emailConfirmed=True,
+                    emailConfirmedDateUtc=date,
+                    registrationDateUtc=date)
+
+        db.session.add(user)
+        db.session.commit()
+
+
 if __name__ == '__main__':
     app.run()
