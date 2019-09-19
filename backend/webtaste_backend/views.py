@@ -712,8 +712,14 @@ class TrialsWithoutNumber(Resource):
             finished = True
             if measurement.metadata_.algorithm == 'QUEST+':
                 threshold = staircase_handler_.paramEstimate['threshold']
+                slope = staircase_handler_.paramEstimate['slope']
+                lower_asymptote = staircase_handler_.paramEstimate['lowerAsymptote']
+                lapse_rate = staircase_handler_.paramEstimate['lapseRate']
             else:
                 threshold = staircase_handler_.mean()
+                slope = staircase_handler_._quest.beta
+                lower_asymptote = staircase_handler_._quest.gamma
+                lapse_rate = staircase_handler_._quest.delta
 
         if not finished:
             concentration = find_nearest(concentration_steps,
@@ -828,6 +834,9 @@ class TrialsWithoutNumber(Resource):
                 threshold_sample_num = idx + 1
 
             measurement.thresholdSampleNumber = threshold_sample_num
+            measurement.slope = slope
+            measurement.lowerAsymptote = lower_asymptote
+            measurement.lapseRate = lapse_rate
             measurement.state = 'finished'
             db.session.add(measurement)
             db.session.commit()
@@ -1090,6 +1099,9 @@ def _gen_quest_report_gustation(measurement):
 
     threshold = measurement.threshold
     threshold_sample_num = measurement.thresholdSampleNumber
+    slope = measurement.slope
+    lower_asymptote = measurement.lowerAsymptote
+    lapse_rate = measurement.lapseRate
 
     data_threshold = pd.DataFrame(
         dict(
@@ -1105,6 +1117,9 @@ def _gen_quest_report_gustation(measurement):
             Threshold=threshold,
             Threshold_Unit=concentration_unit,
             Threshold_Sample_Number=threshold_sample_num,
+            Slope=slope,
+            Lower_Asymptote=lower_asymptote,
+            Lapse_Rate=lapse_rate,
             Date=date_utc,
             Time_Zone=time_zone),
         index=[0])
@@ -1130,109 +1145,6 @@ def _gen_quest_report_gustation(measurement):
 
     data_log.loc[data_log['Response'] == 0, 'Response'] = 'No'
     data_log.loc[data_log['Response'] == 1, 'Response'] = 'Yes'
-
-    figure = _gen_quest_plot_gustatory(participant=participant[0],
-                                       modality=modality,
-                                       substance=substance[0],
-                                       lateralization=lateralization[0],
-                                       method=method,
-                                       session=session[0],
-                                       concentrations=concentrations,
-                                       responses=data_log['Response'].values,
-                                       threshold=threshold)
-
-    f = BytesIO()
-    writer = pd.ExcelWriter(f, engine='xlsxwriter')
-    data_threshold.to_excel(writer, sheet_name='Threshold', index=False)
-    data_log.to_excel(writer, sheet_name='Log', index=False)
-
-    s = writer.sheets['Threshold']
-    s.insert_image('B7', 'Threshold_Plot.png', {'image_data': figure})
-
-    writer.save()
-    f.seek(0)
-
-    filename_base = (f'{participant[0]}_'
-                     f'{modality[:4]}_'
-                     f'{substance[0].replace(" " , "-")}_'
-                     f'{lateralization[0].split(" ")[0]}_'
-                     f'{method}_'
-                     f'{session[0]}')
-
-    filename_xlsx = filename_base + '.xlsx'
-    return filename_xlsx, f
-
-
-def _gen_questplus_report_gustation(measurement):
-    staircase_handler = json_tricks.loads(measurement.staircaseHandler.staircaseHandler)
-    staircase_handler._qp = QuestPlus.from_json(staircase_handler._qp_json)
-
-    q = staircase_handler
-    responses = q.data
-
-    concentrations = q.otherData['Concentration']
-    concentration_unit = 'log10 mol/L'
-    jars = q.otherData['Sample_Number']
-    participant = measurement.metadata_.participant,
-    age = measurement.metadata_.age
-    gender = measurement.metadata_.gender,
-    substance = measurement.metadata_.substance,
-    lateralization = measurement.metadata_.lateralization,
-    study = measurement.study.name,
-    session = measurement.metadata_.sessionName,
-    trials = list(range(1, len(responses) + 1))
-    modality = 'gustatory'
-    method = 'QUEST+'
-    comments = q.otherData.get('Comment', '')
-
-    dt_utc = datetime.strptime(measurement.metadata_.date,
-                               '%a, %d %b %Y %H:%M:%S %Z')
-    date_utc = dt_utc.strftime('%Y-%m-%d %H:%M:%S')
-    time_zone = 'GMT'
-
-    threshold = measurement.threshold
-    # slope  = q.paramEstimate['slope']
-    # fa_rate = q.paramEstimate['lower_asymptote']
-    # lapse_rate = q.paramEstimate['lapse_rate']
-
-    threshold_sample_num = measurement.thresholdSampleNumber
-
-    data_threshold = pd.DataFrame(
-        dict(
-            Participant=participant[0],
-            Age=age,
-            Gender=gender[0],
-            Modality=modality,
-            Substance=substance[0],
-            Lateralization=lateralization[0],
-            Method=method,
-            Study=study[0],
-            Session=session[0],
-            Threshold=threshold,
-            Threshold_Unit=concentration_unit,
-            Threshold_Sample_Number=threshold_sample_num,
-            Date=date_utc,
-            Time_Zone=time_zone),
-        index=[0])
-
-    data_log = pd.DataFrame(
-        dict(Participant=participant[0],
-             Age=age,
-             Gender=gender[0],
-             Modality=modality,
-             Substance=substance[0],
-             Lateralization=lateralization[0],
-             Method=method,
-             Study=study[0],
-             Session=session[0],
-             Trial=trials,
-             Jar=jars,
-             Concentration=concentrations,
-             Concentration_Unit=concentration_unit,
-             Response=responses,
-             Comment=comments,
-             Date=date_utc,
-             Time_Zone=time_zone))
 
     figure = _gen_quest_plot_gustatory(participant=participant[0],
                                        modality=modality,
@@ -1294,8 +1206,12 @@ def _gen_quest_report_olfactory(measurement):
     date_utc = dt_utc.strftime('%Y-%m-%d %H:%M:%S')
     time_zone = 'GMT'
 
-    threshold = q.mean()
+    threshold = measurement.threshold
     threshold_sample_num = measurement.thresholdSampleNumber
+    slope = measurement.slope
+    lower_asymptote = measurement.lowerAsymptote
+    lapse_rate = measurement.lapseRate
+
     data_threshold = pd.DataFrame(
         dict(
             Participant=participant[0],
@@ -1310,6 +1226,9 @@ def _gen_quest_report_olfactory(measurement):
             Threshold=threshold,
             Threshold_Unit=concentration_unit,
             Threshold_Sample_Number=threshold_sample_num,
+            Slope=slope,
+            Lower_Asymptote=lower_asymptote,
+            Lapse_Rate=lapse_rate,
             Date=date_utc,
             Time_Zone=time_zone),
         index=[0])
