@@ -711,7 +711,7 @@ class TrialsWithoutNumber(Resource):
         except StopIteration:
             finished = True
             if measurement.metadata_.algorithm == 'QUEST+':
-                threshold = staircase_handler_.paramEstimates['threshold']
+                threshold = staircase_handler_.paramEstimate['threshold']
             else:
                 threshold = staircase_handler_.mean()
 
@@ -1191,9 +1191,9 @@ def _gen_questplus_report_gustation(measurement):
     time_zone = 'GMT'
 
     threshold = measurement.threshold
-    # slope  = q.paramEstimates['slope']
-    # fa_rate = q.paramEstimates['lower_asymptote']
-    # lapse_rate = q.paramEstimates['lapse_rate']
+    # slope  = q.paramEstimate['slope']
+    # fa_rate = q.paramEstimate['lower_asymptote']
+    # lapse_rate = q.paramEstimate['lapse_rate']
 
     threshold_sample_num = measurement.thresholdSampleNumber
 
