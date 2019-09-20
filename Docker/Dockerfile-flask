@@ -1,12 +1,15 @@
 FROM continuumio/miniconda3:latest
 
 RUN conda update -y -n base conda
-RUN conda install -y numpy scipy pandas openpyxl configobj future flask \
-    flask-login sqlalchemy gunicorn passlib \
-    mysqlclient configobj matplotlib pillow xlsxwriter
-RUN pip install flask_restplus flask_sqlalchemy json-tricks
-RUN pip install --no-deps psychopy
+RUN conda install -y -c conda-forge \
+    flask flask-login flask-restplus flask-sqlalchemy \
+    gunicorn passlib itsdangerous json_tricks mysqlclient \
+    openpyxl configobj matplotlib pillow xlsxwriter future \
+    questplus
+
+# Install version of PsychoPy that supports QUEST+
 RUN conda clean --all -y
+RUN pip install --no-deps 'psychopy==3.2.3'
 
 COPY . .
 
