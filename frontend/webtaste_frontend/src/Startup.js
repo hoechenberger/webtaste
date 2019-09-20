@@ -332,7 +332,7 @@ class Startup extends Component {
                        value={this.state.studyName}
                        onChange={this.handleStudyChange}
                        required>
-                  <option  value="" hidden>– select –</option>
+                  <option value="" hidden>– select –</option>
                   <option value="_new">Create new …</option>
                   {this.state.studies.map(
                       (study, index) => <option key={index}>{study.name}</option>
