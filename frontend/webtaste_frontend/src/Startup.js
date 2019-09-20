@@ -332,10 +332,11 @@ class Startup extends Component {
                        value={this.state.studyName}
                        onChange={this.handleStudyChange}
                        required>
-                  <option disabled value="" hidden>– select –</option>
+                  <option value="" hidden>– select –</option>
                   <option value="_new">Create new …</option>
                   {this.state.studies.map(
-                      (study) => <option>{study.name}</option>)}
+                      (study, index) => <option key={index}>{study.name}</option>
+                  )}
                 </Input>
               </FormGroup>
 
@@ -347,7 +348,8 @@ class Startup extends Component {
                     <Input name="study-new" id="study-new"
                            placeholder="e.g. NIH Grant 123"
                            value={this.state.newStudyName}
-                           onChange={this.handleNewStudyChange}/>
+                           onChange={this.handleNewStudyChange}
+                           required/>
                   </FormGroup>)
                   : null
               }
@@ -364,8 +366,8 @@ class Startup extends Component {
                     Participant ID
                   </Label>
                   <Tooltip text={"A unique, anonymous participant identifier " +
-                  "that cannot be used to immediately identify a " +
-                  "participant."}
+                                 "that cannot be used to immediately identify a " +
+                                 "participant."}
                            id="tooltip-participant"/>
 
                   <Input name="participant" id="participant"

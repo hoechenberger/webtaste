@@ -251,6 +251,7 @@ class RegisterLogin extends Component {
                       className="measurement-info-form">
                   <FormGroup>
                     <Input name="login-username" id="login-username"
+                           autoComplete="username"
                            placeholder="User name"
                            value={this.state.loginUsername}
                            onChange={this.handleLoginUsernameChange}
@@ -260,6 +261,7 @@ class RegisterLogin extends Component {
 
                   <FormGroup>
                     <Input type="password" name="login-password" id="login-password"
+                           autoComplete="current-password"
                            placeholder="Password"
                            value={this.state.loginPassword}
                            onChange={this.handleLoginPasswordChange}
@@ -294,6 +296,7 @@ class RegisterLogin extends Component {
                       className='measurement-info-form'>
                    <FormGroup>
                      <Input name="register-username" id="register-username"
+                            autoComplete="username"
                             placeholder="User name"
                             value={this.state.registerUsername}
                             onChange={this.handleRegisterUsernameChange}
@@ -307,6 +310,7 @@ class RegisterLogin extends Component {
 
                   <FormGroup>
                     <Input type="email" name="register-email" id="register-email"
+                           autoComplete="email"
                            placeholder="john@doe.com"
                            value={this.state.registerEmail}
                            onChange={this.handleRegisterEmailChange}
@@ -315,6 +319,7 @@ class RegisterLogin extends Component {
 
                   <FormGroup>
                     <Input type="password" name="register-password" id="register-password"
+                           autoComplete="new-password"
                            placeholder="Password"
                            value={this.state.registerPassword}
                            onChange={this.handleRegisterPasswordChange}
@@ -332,6 +337,7 @@ class RegisterLogin extends Component {
 
                   <FormGroup>
                     <Input type="password" name="register-password-repeat" id="register-password-repeat"
+                           autoComplete="new-password"
                            placeholder="Password repeat"
                            value={this.state.registerPasswordRepeat}
                            onChange={this.handleRegisterPasswordRepeatChange}
