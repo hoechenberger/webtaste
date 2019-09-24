@@ -4,6 +4,9 @@ import Measurement from './Measurement'
 import RegisterLogin from './RegisterLogin'
 import EmailConfirmation from './EmailConfirmation'
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
+import AccountSettings from "./AccountSettings";
+import Landing from "./Landing";
+import MeasurementsOverview from "./MeasurementsOverview";
 
 // import './App.css';
 
@@ -12,6 +15,7 @@ import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 class App extends Component {
   initialState = {
     loggedIn: false,
+    userName: null,
     metadata: {}
   };
 
@@ -34,8 +38,15 @@ class App extends Component {
     metadata: metadata
   });
 
-  onLogin = () => this.setState({loggedIn: true});
-  onLogout = () => this.setState({loggedIn: false});
+  onLogin = (userName) => this.setState({
+    userName: userName,
+    loggedIn: true
+  });
+
+  onLogout = () => this.setState({
+    userName: null,
+    loggedIn: false
+  });
 
   // renderMainView = () => {
   //   if (!this.state.loggedIn) {
@@ -79,6 +90,12 @@ class App extends Component {
                            loggedIn={this.state.loggedIn}/>
                    )}
             />
+            <Route path="/account" exact
+                   render={() => (
+                       <AccountSettings
+                           loggedIn={this.state.loggedIn}/>
+                   )}
+            />
             <Route path="/measurement" exact
                    render={() => (
                        <Measurement
@@ -90,6 +107,22 @@ class App extends Component {
             />
             <Route path="/confirm_email" exact
                    component={EmailConfirmation}
+            />
+            <Route path="/measurements_overview" exact
+                   render={() => (
+                       <MeasurementsOverview
+                           loggedIn={this.state.loggedIn}
+                       />
+                   )}
+            />
+            <Route path="/landing" exact
+                   render={() => (
+                       <Landing
+                           loggedIn={this.state.loggedIn}
+                           userName={this.state.userName}
+                           onLogout={this.onLogout}
+                       />
+                   )}
             />
             <Route path="/" exact
                    render={() => (

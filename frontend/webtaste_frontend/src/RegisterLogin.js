@@ -213,7 +213,7 @@ class RegisterLogin extends Component {
 
     if (response.ok) {
       this.setState({loginSuccessful: true});
-      this.props.onLogin();
+      this.props.onLogin(this.state.loginUsername);
     } else {
       this.setState({loginSuccessful: false});
     }
@@ -227,7 +227,7 @@ class RegisterLogin extends Component {
 
   componentDidMount = () => {
     if (this.props.loggedIn) {
-      this.props.history.push('/startup')
+      this.props.history.push('/landing')
     }
   };
 

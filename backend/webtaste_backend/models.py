@@ -96,8 +96,6 @@ measurement_state = api.model('Measurement', {
                     enum=['created', 'running', 'finished', 'aborted'])
 })
 
-
-
 user_registration = api.model('User Registration', {
     'user': String(description='User name', required=True),
     'email': String(description='Email address', required=True),
@@ -109,6 +107,10 @@ user_login = api.model('User Login', {
     'password': String(description='Password', required=True)
 })
 
+user_settings = api.model('User Settings', {
+    'name': String(description='User name', required=True),
+    'email': String(description='Email address', required=True),
+})
 
 class User(db.Model):
     __tablename__ = 'users'

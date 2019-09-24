@@ -123,7 +123,6 @@ class Startup extends Component {
     }
   };
 
-
   restoreStateFromLocalStorage = () => {
     // for all items in state
     for (let key in this.state) {
@@ -184,6 +183,10 @@ class Startup extends Component {
 
     const json = await response.json();
     return json.data.id;
+  };
+
+  navigateToLanding = () => {
+    this.props.history.push('/landing')
   };
 
   handleSubmit = async (e) => {
@@ -510,8 +513,10 @@ class Startup extends Component {
               </CardBody>
             </Collapse>
           </Card>
-          <Button color='success' className="start-button" size="lg"
-                  block>Start</Button>
+          <div className="measurement-info-form-buttons">
+            <Button color="primary" size="lg" className="back-button" onClick={this.navigateToLanding}>Back</Button>
+            <Button color='success' size="lg" className="start-button">Start</Button>
+          </div>
         </Form>
       </div>
     );
