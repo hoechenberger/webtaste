@@ -10,7 +10,11 @@ class AccountSettings extends Component {
   };
 
   componentDidMount = async () => {
-    await this.fetchUserSettings();
+    if (!this.props.loggedIn) {
+      this.navigateToLogin();
+    } else {
+      await this.fetchUserSettings();
+    }
   };
 
   handleUserNameChange = (e) => {
@@ -40,11 +44,11 @@ class AccountSettings extends Component {
     this.props.history.push('/landing')
   };
 
-  render = () => {
-      if (!this.props.loggedIn) {
-        return null
-      }
+  navigateToLogin = () => {
+    this.props.history.push('/')
+  };
 
+  render = () => {
       return(
         <div>
           <Card className="account-settings-card">

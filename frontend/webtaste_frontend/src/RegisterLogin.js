@@ -234,10 +234,6 @@ class RegisterLogin extends Component {
   componentDidUpdate = this.componentDidMount;
 
   render () {
-    if (this.props.loggedIn) {
-      return null
-    }
-
     return (
         <div>
           <Card className="login-card">

@@ -100,27 +100,34 @@ class Startup extends Component {
 
   componentDidMount = async () => {
     if (!this.props.loggedIn) {
-      this.props.history.push('/');
-      return
-    }
+      this.navigateToLogin();
+    } else {
+      await this.restoreStateFromLocalStorage();
+      this.getStudiesFromApi();
 
-    await this.restoreStateFromLocalStorage();
-    this.getStudiesFromApi();
-
-    // Must be empty in case the user created a new study in the previous run,
-    // otherwise we will try to create a new study on each startup.
-    if (this.state.newStudyName !== "") {
+      // Must be empty in case the user created a new study in the previous run,
+      // otherwise we will try to create a new study on each startup.
+      if (this.state.newStudyName !== "") {
         this.setState({
           studyName: "",
-          newStudyName: ""});
+          newStudyName: ""
+        });
+      }
     }
-
   };
 
-  componentDidUpdate = () => {
-    if (!this.props.loggedIn) {
-      this.props.history.push('/')
-    }
+  // componentDidUpdate = () => {
+  //   if (!this.props.loggedIn) {
+  //     this.props.history.push('/')
+  //   }
+  // };
+
+  navigateToLanding = () => {
+    this.props.history.push('/landing')
+  };
+
+  navigateToLogin = () => {
+    this.props.history.push('/')
   };
 
   restoreStateFromLocalStorage = () => {
@@ -183,10 +190,6 @@ class Startup extends Component {
 
     const json = await response.json();
     return json.data.id;
-  };
-
-  navigateToLanding = () => {
-    this.props.history.push('/landing')
   };
 
   handleSubmit = async (e) => {
@@ -310,10 +313,6 @@ class Startup extends Component {
   };
 
   render () {
-    if (!this.props.loggedIn) {
-      return null
-    }
-
     return (
       <div className="measurement-info">
         <Form method="post"
