@@ -9,6 +9,8 @@ class Landing extends Component {
     }
   };
 
+  componentDidUpdate = this.componentDidMount;
+
   navigateToStartup = () => {
     this.props.history.push('/startup')
   };

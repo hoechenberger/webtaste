@@ -18,11 +18,32 @@ class App extends Component {
 
   state = this.initialState;
 
+  componentDidMount = async () => {
+    await this._checkIfLoggedInAlready();
+  };
+
+
+  _checkIfLoggedInAlready = async () => {
+    // Try to access the user settings page, which requires a valid cookie to
+    // be set. We cannot check for the cookie directly in JS, as it's set to
+    // HttpOnly, that's why we're doing this workaround.
+    const uri = '/api/user/settings';
+    const response = await fetch(uri, {method: 'get'});
+    const json = await response.json();
+
+    if (response.ok) {
+      this.setState({
+        loggedIn: true,
+        userName: json.data.name
+      })
+    }
+  };
   // resetState = () => this.setState(this.initialState);
 
   resetState = () => this.setState({
     metadata: {}
   });
+
 
   onStartupSubmit = (studyId, metadata) => this.setState({
     studyId: studyId,
@@ -34,10 +55,16 @@ class App extends Component {
     loggedIn: true
   });
 
-  onLogout = () => this.setState({
-    userName: null,
-    loggedIn: false
-  });
+  onLogout = async () => {
+    const uri = '/api/user/logout';
+    const response = await fetch(uri, {method: 'get'});
+    if (response.ok) {
+      this.setState({
+        userName: null,
+        loggedIn: false
+      });
+    }
+  };
 
   genTitle = () => {
     if (Object.keys(this.state.metadata).length > 0) {
