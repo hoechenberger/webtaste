@@ -561,7 +561,7 @@ class MeasurementWithIdApi(Resource):
     def delete(self, study_id, measurement_number):
         """Delete a running staircase.
         """
-        mask = ((models.Measurement.study.id == study_id) &
+        mask = ((models.Measurement.studyId == study_id) &
                 (models.Measurement.number == measurement_number))
         measurement = (models.Measurement
                        .query

@@ -8,9 +8,6 @@ import AccountSettings from "./AccountSettings";
 import Landing from "./Landing";
 import MeasurementsOverview from "./MeasurementsOverview";
 
-// import './App.css';
-
-
 
 class App extends Component {
   initialState = {
@@ -27,12 +24,6 @@ class App extends Component {
     metadata: {}
   });
 
-  // componentDidMount() {
-  //   const foo = x('foo', 'citric acid', 'left', 'Retest');
-  //   foo.then(f => console.log(f));
-  //   // this.startMeasurement();
-  // };
-
   onStartupSubmit = (studyId, metadata) => this.setState({
     studyId: studyId,
     metadata: metadata
@@ -47,22 +38,6 @@ class App extends Component {
     userName: null,
     loggedIn: false
   });
-
-  // renderMainView = () => {
-  //   if (!this.state.loggedIn) {
-  //     return <RegisterLogin onLogin={this.onLogin}/>
-  //   } else {
-  //     if (!this.state.metadataSubmitted) {
-  //       return <Startup onMetadataSubmit={this.onMetadataSubmit}/>
-  //     } else {
-  //       return (
-  //             <Measurement
-  //                 metadata={this.state.metadata}
-  //                 onRestart={this.resetState}/>
-  //       )
-  //     }
-  //   }
-  // };
 
   genTitle = () => {
     if (Object.keys(this.state.metadata).length > 0) {

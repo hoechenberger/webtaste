@@ -210,7 +210,6 @@ class RegisterLogin extends Component {
       body: payload,
       credentials: 'same-origin'
     });
-
     if (response.ok) {
       this.setState({loginSuccessful: true});
       this.props.onLogin(this.state.loginUsername);

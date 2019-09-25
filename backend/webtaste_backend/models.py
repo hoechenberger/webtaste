@@ -75,6 +75,7 @@ study = api.model('Study', {
 # })
 
 measurement = api.model('Measurement', {
+    'id': Integer(description='Unique measurement ID', required=True),
     'number': Integer(description='Measurement Number', required=True),
     'state': String(description='State of the measurement', required=True,
                     enum=['created', 'running', 'finished', 'aborted']),
@@ -111,6 +112,7 @@ user_settings = api.model('User Settings', {
     'name': String(description='User name', required=True),
     'email': String(description='Email address', required=True),
 })
+
 
 class User(db.Model):
     __tablename__ = 'users'
