@@ -100,29 +100,35 @@ class Startup extends Component {
 
   componentDidMount = async () => {
     if (!this.props.loggedIn) {
-      this.props.history.push('/');
-      return
-    }
+      this.navigateToLogin();
+    } else {
+      await this.restoreStateFromLocalStorage();
+      this.getStudiesFromApi();
 
-    await this.restoreStateFromLocalStorage();
-    this.getStudiesFromApi();
-
-    // Must be empty in case the user created a new study in the previous run,
-    // otherwise we will try to create a new study on each startup.
-    if (this.state.newStudyName !== "") {
+      // Must be empty in case the user created a new study in the previous run,
+      // otherwise we will try to create a new study on each startup.
+      if (this.state.newStudyName !== "") {
         this.setState({
           studyName: "",
-          newStudyName: ""});
-    }
-
-  };
-
-  componentDidUpdate = () => {
-    if (!this.props.loggedIn) {
-      this.props.history.push('/')
+          newStudyName: ""
+        });
+      }
     }
   };
 
+  // componentDidUpdate = () => {
+  //   if (!this.props.loggedIn) {
+  //     this.props.history.push('/')
+  //   }
+  // };
+
+  navigateToLanding = () => {
+    this.props.history.push('/landing')
+  };
+
+  navigateToLogin = () => {
+    this.props.history.push('/')
+  };
 
   restoreStateFromLocalStorage = () => {
     // for all items in state
@@ -307,10 +313,6 @@ class Startup extends Component {
   };
 
   render () {
-    if (!this.props.loggedIn) {
-      return null
-    }
-
     return (
       <div className="measurement-info">
         <Form method="post"
@@ -510,8 +512,10 @@ class Startup extends Component {
               </CardBody>
             </Collapse>
           </Card>
-          <Button color='success' className="start-button" size="lg"
-                  block>Start</Button>
+          <div className="measurement-info-form-buttons">
+            <Button color="primary" size="lg" className="back-button" onClick={this.navigateToLanding}>Back</Button>
+            <Button color='success' size="lg" className="start-button">Start</Button>
+          </div>
         </Form>
       </div>
     );

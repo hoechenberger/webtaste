@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { Button, Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
 import Plot from 'react-plotly.js';
-import { saveAs } from 'file-saver';
+import DownloadReportButton from "./DownloadReportButton";
 import { withRouter } from 'react-router-dom'
 
 
@@ -46,55 +46,6 @@ class TrialPlot extends Component {
   }
 }
 
-
-class DownloadReportButton extends Component {
-  state = {
-    disabled: false
-  };
-
-  _getQuestReportFromApi = async () => {
-    const uri = `/api/studies/${this.props.studyId}` +
-                `/measurements/${this.props.measurementId}/report`;
-
-    const response = await fetch(uri, {
-      method: 'get',
-      headers: {
-        'Accept': 'application/json, text/plain, */*',
-        'Content-Type': 'application/json'
-      },
-      credentials: 'same-origin'
-    });
-
-    return response;
-  };
-
-  _prepareAndDeliverDownload = async () => {
-    const response = await this._getQuestReportFromApi();
-    const contentDispositionHeader = response.headers.get('content-disposition');
-    const filename = contentDispositionHeader.split('=')[1];
-    const blob = await response.blob();
-
-    saveAs(blob, filename);
-  };
-
-  handleClick = async () => {
-    this.setState({disabled: true},
-        async () => {
-          await this._prepareAndDeliverDownload();
-          this.setState({disabled: false});
-        })
-  };
-
-  render () {
-    return (
-        <Button color='success'
-                disabled={this.state.disabled}
-                onClick={this.handleClick}>
-          Download Report
-        </Button>
-    );
-  }
-}
 
 class ConfirmRestartModal extends Component {
   handleConfirm = () => {
@@ -159,13 +110,10 @@ class Measurement extends Component {
     responseButtonsEnabled: false
   };
 
+
   componentDidMount = () => {
     if (!this.props.loggedIn) {
-      this.props.history.push('/');
-      return
-    } else if (Object.keys(this.props.metadata).length === 0) {
-      this.props.history.push('/startup');
-      return
+      this.navigateToLogin();
     }
 
     this.startMeasurement(this.props.studyId, this.props.metadata);
@@ -179,6 +127,14 @@ class Measurement extends Component {
       this.props.history.push('/startup');
       return
     }
+  };
+
+  navigateToLanding = () => {
+    this.props.history.push('/landing')
+  };
+
+  navigateToLogin = () => {
+    this.props.history.push('/')
   };
 
   handleYesResponseButton = () => {
@@ -349,17 +305,6 @@ class Measurement extends Component {
     }
   };
 
-
-  _deleteMeasurement = async () => {
-    const uri = `/api/studies/${this.props.studyId}` +
-                `/measurements/${this.state.measurementId}`;
-
-    await fetch(uri, {
-      method: 'delete',
-      credentials: 'same-origin'
-    })
-  };
-
   _abortMeasurement = async () => {
     const uri = `/api/studies/${this.props.studyId}` +
                 `/measurements/${this.state.measurementId}`;
@@ -380,6 +325,7 @@ class Measurement extends Component {
     // await this._deleteMeasurement();
     await this._abortMeasurement();
     this.props.onRestart();
+    this.navigateToLanding();
   };
 
   toggleConfirmRestartModal = () => this.setState(
@@ -418,6 +364,7 @@ class Measurement extends Component {
           <DownloadReportButton
               studyId={this.props.studyId}
               measurementId={this.state.measurementId}
+              text="Download Report"
           />{' '}
           <Button color="danger"
                   onClick={this.toggleConfirmRestartModal}>New Measurement</Button>
@@ -493,6 +440,7 @@ class Measurement extends Component {
           <DownloadReportButton
               studyId={this.props.studyId}
               measurementId={this.state.measurementId}
+              text="Download Report"
           />{' '}
           <Button color="danger"
                   onClick={this.toggleConfirmRestartModal}>New Measurement</Button>

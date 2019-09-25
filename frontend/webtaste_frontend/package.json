@@ -8,6 +8,7 @@
     "http-proxy-middleware": "^0.19.1",
     "plotly.js": "^1.48.3",
     "react": "^16.8.6",
+    "react-bootstrap-table-next": "^3.2.0",
     "react-dom": "^16.8.6",
     "react-plotly.js": "^2.3.0",
     "react-router-dom": "^4.3.1",

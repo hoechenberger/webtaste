@@ -210,10 +210,9 @@ class RegisterLogin extends Component {
       body: payload,
       credentials: 'same-origin'
     });
-
     if (response.ok) {
       this.setState({loginSuccessful: true});
-      this.props.onLogin();
+      this.props.onLogin(this.state.loginUsername);
     } else {
       this.setState({loginSuccessful: false});
     }
@@ -227,17 +226,13 @@ class RegisterLogin extends Component {
 
   componentDidMount = () => {
     if (this.props.loggedIn) {
-      this.props.history.push('/startup')
+      this.props.history.push('/landing')
     }
   };
 
   componentDidUpdate = this.componentDidMount;
 
   render () {
-    if (this.props.loggedIn) {
-      return null
-    }
-
     return (
         <div>
           <Card className="login-card">
