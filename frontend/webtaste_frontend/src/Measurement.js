@@ -322,7 +322,6 @@ class Measurement extends Component {
   };
 
   abortMeasurement = async () => {
-    // await this._deleteMeasurement();
     await this._abortMeasurement();
     this.props.onRestart();
     this.navigateToLanding();
