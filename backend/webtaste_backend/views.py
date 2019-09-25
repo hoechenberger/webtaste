@@ -172,7 +172,7 @@ class Logout(Resource):
 
 
 @api.route('/api/user/settings')
-class Logout(Resource):
+class UserSettings(Resource):
     @login_required
     def get(self):
         data = marshal(current_user, fields=models.user_settings)
