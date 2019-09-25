@@ -94,6 +94,12 @@ body {
   cursor: pointer;
 }
 
+.landing-card .card-header,
+.account-settings-card .card-header
+{
+  cursor: default;
+}
+
 .tooltip-element {
   display: inline-block;
   margin: 0 0 0 0.75em;
