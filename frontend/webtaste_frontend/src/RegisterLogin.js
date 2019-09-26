@@ -268,7 +268,7 @@ class RegisterLogin extends Component {
                   </FormGroup>
 
                   <Button color='success' className="login-button" size="lg"
-                          block>Login</Button>
+                          block type="submit">Login</Button>
                 </Form>
               </CardBody>
             </Collapse>
@@ -344,7 +344,8 @@ class RegisterLogin extends Component {
                   <Button color='success' className="register-button"
                           size="lg"
                           block
-                          disabled={!this.state.registerFormIsFilled}>
+                          disabled={!this.state.registerFormIsFilled}
+                          type="submit">
                     Register
                   </Button>
                 </Form>

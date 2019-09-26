@@ -514,7 +514,7 @@ class Startup extends Component {
           </Card>
           <div className="measurement-info-form-buttons">
             <Button color="primary" size="lg" className="back-button" onClick={this.navigateToLanding}>Back</Button>
-            <Button color='success' size="lg" className="start-button">Start</Button>
+            <Button color='success' size="lg" className="start-button" type="submit">Start</Button>
           </div>
         </Form>
       </div>
