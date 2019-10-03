@@ -11,7 +11,7 @@
     "react-bootstrap-table-next": "^3.2.0",
     "react-dom": "^16.9.0",
     "react-plotly.js": "^2.3.0",
-    "react-router-dom": "^4.3.1",
+    "react-router-dom": "^5.1.2",
     "react-scripts": "^3.1.2",
     "reactstrap": "^6.5.0",
     "url-search-params-polyfill": "^4.0.1"

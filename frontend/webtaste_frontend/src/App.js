@@ -1,9 +1,9 @@
-import React, { Component } from 'react';
+import React, {Component} from 'react';
 import Startup from './Startup'
 import Measurement from './Measurement'
 import RegisterLogin from './RegisterLogin'
 import EmailConfirmation from './EmailConfirmation'
-import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
+import {BrowserRouter as Router, Switch, Route} from 'react-router-dom';
 import AccountSettings from "./AccountSettings";
 import Landing from "./Landing";
 import MeasurementsOverview from "./MeasurementsOverview";
@@ -82,57 +82,46 @@ class App extends Component {
     return (
       <div className="app">
         <h2>{this.genTitle()}</h2>
-        {/*{this.renderMainView()}*/}
         <Router>
           <Switch>
-            <Route path="/startup" exact
-                   render={() => (
-                       <Startup
-                           onSubmit={this.onStartupSubmit}
-                           loggedIn={this.state.loggedIn}/>
-                   )}
-            />
-            <Route path="/account" exact
-                   render={() => (
-                       <AccountSettings
-                           loggedIn={this.state.loggedIn}/>
-                   )}
-            />
-            <Route path="/measurement" exact
-                   render={() => (
-                       <Measurement
-                           loggedIn={this.state.loggedIn}
-                           studyId={this.state.studyId}
-                           metadata={this.state.metadata}
-                           onRestart={this.resetState} />
-                   )}
-            />
+            <Route path="/startup" exact>
+              <Startup
+                onSubmit={this.onStartupSubmit}
+                loggedIn={this.state.loggedIn} />
+            </Route>
+
+            <Route path="/account" exact>
+              <AccountSettings
+                loggedIn={this.state.loggedIn} />
+            </Route>
+
+            <Route path="/measurement" exact>
+              <Measurement
+                loggedIn={this.state.loggedIn}
+                studyId={this.state.studyId}
+                metadata={this.state.metadata}
+                onRestart={this.resetState} />
+            </Route>
+
             <Route path="/confirm_email" exact
-                   component={EmailConfirmation}
-            />
-            <Route path="/measurements_overview" exact
-                   render={() => (
-                       <MeasurementsOverview
-                           loggedIn={this.state.loggedIn}
-                       />
-                   )}
-            />
-            <Route path="/landing" exact
-                   render={() => (
-                       <Landing
-                           loggedIn={this.state.loggedIn}
-                           userName={this.state.userName}
-                           onLogout={this.onLogout}
-                       />
-                   )}
-            />
-            <Route path="/" exact
-                   render={() => (
-                       <RegisterLogin
-                           onLogin={this.onLogin}
-                           loggedIn={this.state.loggedIn} />
-                   )}
-            />
+                   component={EmailConfirmation} />
+
+            <Route path="/measurements_overview" exact>
+              <MeasurementsOverview loggedIn={this.state.loggedIn} />
+            </Route>
+
+            <Route path="/landing" exact>
+              <Landing
+                loggedIn={this.state.loggedIn}
+                userName={this.state.userName}
+                onLogout={this.onLogout} />
+            </Route>
+
+            <Route path="/" exact>
+              <RegisterLogin
+                onLogin={this.onLogin}
+                loggedIn={this.state.loggedIn} />
+            </Route>
           </Switch>
         </Router>
       </div>
