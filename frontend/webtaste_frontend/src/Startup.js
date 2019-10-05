@@ -1,87 +1,10 @@
 import React, { Component } from 'react';
-import { Button, Form, FormGroup, Label, Input,
-  Card, CardBody, CardHeader, Collapse } from 'reactstrap';
+import { Button, Card, CardBody, CardHeader, Collapse, Form, FormGroup, Input, Label } from 'reactstrap';
 import { withRouter } from 'react-router-dom'
 import Tooltip from './Tooltip'
+import { AlgorithmInput } from "./AlgorithmInputForm";
+import { SubstanceInput } from "./SubstanceInputForm";
 
-
-const GustatoryAlgorithmInput = (props) => {
-  return (
-    <Input type="select" name="algorithm" id={props.id}
-           // Disabled if no modality has been selected so far
-           disabled={props.modality === ""}
-           value={props.value}
-           onChange={props.onChange}
-           required>
-      <option disabled value="" hidden>– select –</option>
-      <option>QUEST+</option>
-      <option>QUEST</option>
-    </Input>
-  )
-};
-
-const OlfactoryAlgorithmInput = (props) => {
-  return (
-    <Input type="select" name="algorithm" id={props.id}
-          // Disabled if no modality has been selected so far
-           disabled={props.modality === ""}
-           value={props.value}
-           onChange={props.onChange}
-           required>
-      <option disabled value="" hidden>– select –</option>
-      <option>QUEST</option>
-      {/*<option>Hummel</option>*/}
-    </Input>
-  )
-};
-
-const AlgorithmInput = (props) => {
-  return (
-    props.modality === "gustatory" ?
-      <GustatoryAlgorithmInput /> :
-      <OlfactoryAlgorithmInput />
-  )
-};
-
-const GustatorySubstanceInput = (props) => {
-  return (
-    <Input type="select" name="substance" id={props.id}
-          // Disabled if no modality has been selected so far
-           disabled={props.modality === ""}
-           value={props.value}
-           onChange={props.onChange}
-           required>
-      <option disabled value="" hidden>– select –</option>
-      <option>citric acid</option>
-      <option>sodium chloride</option>
-      <option>sucrose</option>
-      <option>quinine hydrochloride</option>
-    </Input>
-  )
-};
-
-const OlfactorySubstanceInput = (props) => {
-  return (
-    <Input type="select" name="substance" id={props.id}
-          // Disabled if no modality has been selected so far
-           disabled={props.modality === ""}
-           value={props.value}
-           onChange={props.onChange}
-           required>
-      <option disabled value="" hidden>– select –</option>
-      <option>2-phenylethanol</option>
-      <option>n-butanol</option>
-    </Input>
-  )
-};
-
-const SubstanceInput = (props) => {
-  return (
-    props.modality === "gustatory" ?
-      <GustatorySubstanceInput /> :
-      <OlfactorySubstanceInput />
-  )
-};
 
 class Startup extends Component {
   state = {
