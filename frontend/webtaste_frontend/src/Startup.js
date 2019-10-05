@@ -43,42 +43,45 @@ const AlgorithmInput = (props) => {
   )
 };
 
-class SubstanceInput extends Component {
-  render() {
-    let inputField;
-    if (this.props.modality === "gustatory") {
-      inputField = (
-          <Input type="select" name="substance" id={this.props.id}
-              // Disabled if no modality has been selected so far
-                 disabled={this.props.modality === ""}
-                 value={this.props.value}
-                 onChange={this.props.onChange}
-                 required>
-            <option disabled value="" hidden>– select –</option>
-            <option>sucrose</option>
-            <option>citric acid</option>
-            <option>sodium chloride</option>
-            <option>quinine hydrochloride</option>
-          </Input>
-      )
-    } else {
-      inputField = (
-          <Input type="select" name="substance" id={this.props.id}
-              // Disabled if no modality has been selected so far
-                 disabled={this.props.modality === ""}
-                 value={this.props.value}
-                 onChange={this.props.onChange}
-                 required>
-            <option disabled value="" hidden>– select –</option>
-            <option>2-phenylethanol</option>
-            <option>n-butanol</option>
-          </Input>
-      )
-    }
+const GustatorySubstanceInput = (props) => {
+  return (
+    <Input type="select" name="substance" id={props.id}
+          // Disabled if no modality has been selected so far
+           disabled={props.modality === ""}
+           value={props.value}
+           onChange={props.onChange}
+           required>
+      <option disabled value="" hidden>– select –</option>
+      <option>citric acid</option>
+      <option>sodium chloride</option>
+      <option>sucrose</option>
+      <option>quinine hydrochloride</option>
+    </Input>
+  )
+};
 
-    return inputField;
-  }
-}
+const OlfactorySubstanceInput = (props) => {
+  return (
+    <Input type="select" name="substance" id={props.id}
+          // Disabled if no modality has been selected so far
+           disabled={props.modality === ""}
+           value={props.value}
+           onChange={props.onChange}
+           required>
+      <option disabled value="" hidden>– select –</option>
+      <option>2-phenylethanol</option>
+      <option>n-butanol</option>
+    </Input>
+  )
+};
+
+const SubstanceInput = (props) => {
+  return (
+    props.modality === "gustatory" ?
+      <GustatorySubstanceInput /> :
+      <OlfactorySubstanceInput />
+  )
+};
 
 class Startup extends Component {
   state = {
