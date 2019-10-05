@@ -9,8 +9,9 @@ import { LateralizationInput } from "./LateralizationInputForm";
 
 class Startup extends Component {
   state = {
+    studyInfoCardIsOpen: true,
     participantInfoCardIsOpen: true,
-    experimentSettingsCardIsOpen: false,
+    experimentSettingsCardIsOpen: true,
     participant: "",
     age: "",
     gender: "",
@@ -161,6 +162,11 @@ class Startup extends Component {
     this.props.history.push('/measurement')
   };
 
+  toggleStudyInfoCard = () => {
+    const studyInfoCardIsOpen = !this.state.studyInfoCardIsOpen;
+    this.setState({studyInfoCardIsOpen: studyInfoCardIsOpen});
+  };
+
   toggleParticipantInfoCard = () => {
     const participantInfoCardIsOpen = !this.state.participantInfoCardIsOpen;
     this.setState({participantInfoCardIsOpen: participantInfoCardIsOpen});
@@ -247,43 +253,45 @@ class Startup extends Component {
               onSubmit={this.handleSubmit}
               className="measurement-info-form">
           <Card className="study-info-card">
-            <CardHeader onClick={this.toggleParticipantInfoCard}>
+            <CardHeader onClick={this.toggleStudyInfoCard}>
               Study Info
             </CardHeader>
-            <CardBody>
-              <FormGroup>
-                <Label for="study" className="input-label-required">
-                  Study name
-                </Label>
-                <Tooltip text="The name of the study this measurement belongs to."
-                         id="tooltip-study"/>
+            <Collapse isOpen={this.state.studyInfoCardIsOpen}>
+              <CardBody>
+                <FormGroup>
+                  <Label for="study" className="input-label-required">
+                    Study name
+                  </Label>
+                  <Tooltip text="The name of the study this measurement belongs to."
+                           id="tooltip-study"/>
 
-                <Input type="select" name="study" id="study"
-                       value={this.state.studyName}
-                       onChange={this.handleStudyChange}
-                       required>
-                  <option value="" hidden>– select –</option>
-                  <option value="_new">Create new …</option>
-                  {this.state.studies.map(
-                      (study, index) => <option key={index}>{study.name}</option>
-                  )}
-                </Input>
-              </FormGroup>
+                  <Input type="select" name="study" id="study"
+                         value={this.state.studyName}
+                         onChange={this.handleStudyChange}
+                         required>
+                    <option value="" hidden>– select –</option>
+                    <option value="_new">Create new …</option>
+                    {this.state.studies.map(
+                        (study, index) => <option key={index}>{study.name}</option>
+                    )}
+                  </Input>
+                </FormGroup>
 
-              {this.state.studyName === "_new"
-                  ? (<FormGroup>
-                    <Label for="study-new" className="input-label-required">
-                      Create new study
-                    </Label>
-                    <Input name="study-new" id="study-new"
-                           placeholder="e.g. NIH Grant 123"
-                           value={this.state.newStudyName}
-                           onChange={this.handleNewStudyChange}
-                           required/>
-                  </FormGroup>)
-                  : null
-              }
-            </CardBody>
+                {this.state.studyName === "_new"
+                    ? (<FormGroup>
+                      <Label for="study-new" className="input-label-required">
+                        Create new study
+                      </Label>
+                      <Input name="study-new" id="study-new"
+                             placeholder="e.g. NIH Grant 123"
+                             value={this.state.newStudyName}
+                             onChange={this.handleNewStudyChange}
+                             required/>
+                    </FormGroup>)
+                    : null
+                }
+              </CardBody>
+            </Collapse>
           </Card>
           <Card className="participant-info-card">
             <CardHeader onClick={this.toggleParticipantInfoCard}>
