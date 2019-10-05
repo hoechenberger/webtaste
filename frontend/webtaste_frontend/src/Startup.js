@@ -5,38 +5,42 @@ import { withRouter } from 'react-router-dom'
 import Tooltip from './Tooltip'
 
 
+const GustatoryAlgorithmInput = (props) => {
+  return (
+    <Input type="select" name="algorithm" id={props.id}
+           // Disabled if no modality has been selected so far
+           disabled={props.modality === ""}
+           value={props.value}
+           onChange={props.onChange}
+           required>
+      <option disabled value="" hidden>– select –</option>
+      <option>QUEST+</option>
+      <option>QUEST</option>
+    </Input>
+  )
+};
+
+const OlfactoryAlgorithmInput = (props) => {
+  return (
+    <Input type="select" name="algorithm" id={props.id}
+          // Disabled if no modality has been selected so far
+           disabled={props.modality === ""}
+           value={props.value}
+           onChange={props.onChange}
+           required>
+      <option disabled value="" hidden>– select –</option>
+      <option>QUEST</option>
+      {/*<option>Hummel</option>*/}
+    </Input>
+  )
+};
+
 const AlgorithmInput = (props) => {
-  let inputField;
-
-  if (props.modality === "gustatory") {
-    inputField = (
-      <Input type="select" name="algorithm" id={props.id}
-             // Disabled if no modality has been selected so far
-             disabled={props.modality === ""}
-             value={props.value}
-             onChange={props.onChange}
-             required>
-        <option disabled value="" hidden>– select –</option>
-        <option>QUEST+</option>
-        <option>QUEST</option>
-      </Input>
-    )
-  } else {
-    inputField = (
-      <Input type="select" name="algorithm" id={props.id}
-            // Disabled if no modality has been selected so far
-             disabled={props.modality === ""}
-             value={props.value}
-             onChange={props.onChange}
-             required>
-        <option disabled value="" hidden>– select –</option>
-        <option>QUEST</option>
-        {/*<option>Hummel</option>*/}
-      </Input>
-    )
-  }
-
-    return inputField
+  return (
+    props.modality === "gustatory" ?
+      <GustatoryAlgorithmInput /> :
+      <OlfactoryAlgorithmInput />
+  )
 };
 
 class SubstanceInput extends Component {
