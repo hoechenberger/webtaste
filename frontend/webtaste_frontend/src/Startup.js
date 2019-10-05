@@ -4,6 +4,7 @@ import { withRouter } from 'react-router-dom'
 import Tooltip from './Tooltip'
 import { AlgorithmInput } from "./AlgorithmInputForm";
 import { SubstanceInput } from "./SubstanceInputForm";
+import { LateralizationInput } from "./LateralizationInputForm";
 
 
 class Startup extends Component {
@@ -388,7 +389,6 @@ class Startup extends Component {
                       id="substance"
                   />
                 </FormGroup>
-
                 <FormGroup>
                   <Label for="lateralization" className="input-label-required">
                     Lateralization
@@ -396,15 +396,10 @@ class Startup extends Component {
                   <Tooltip text={"Whether to test on both sides (bilateral testing) or on only " +
                                  "one side (unilateral testing)."}
                            id="tooltip-lateralization"/>
-                  <Input type="select" name="lateralization" id="lateralization"
-                         value={this.state.lateralization}
-                         onChange={this.handleLateralizationChange}
-                         required>
-                    <option disabled value="" hidden>– select –</option>
-                    <option>both sides</option>
-                    <option>left side</option>
-                    <option>right side</option>
-                  </Input>
+                  <LateralizationInput
+                    value={this.state.lateralization}
+                    onChange={this.handleLateralizationChange}
+                  />
                 </FormGroup>
                 {(this.state.modality === "olfactory") && (this.state.algorithm === 'Hummel') ? (
                         <FormGroup>
