@@ -5,36 +5,34 @@ import { Button, Form, FormGroup, FormFeedback, Input,
 import { withRouter } from 'react-router-dom'
 
 
-class RegistrationSuccessfulModal extends Component {
-  render() {
-    return (
-        <Modal isOpen={this.props.show}
-               toggle={this.props.toggle}>
-          <ModalHeader toggle={this.props.toggle}>
-            Registration successful
-          </ModalHeader>
-          <ModalBody>
-            <p>Your registration was successful.</p>
-            <p>
-              <strong>User name:</strong> {this.props.username}<br />
-              <strong>Email:</strong> {this.props.email}
-            </p>
-            <p>
-              An activation link has been sent to your email address. Please
-              use it to activate your account. After activation, you may
-              log in.
-            </p>
-          </ModalBody>
-          <ModalFooter>
-            <Button color="primary"
-                    onClick={this.props.toggle}>
-                    Close
-            </Button>
-          </ModalFooter>
-        </Modal>
-    );
-  }
-}
+const RegistrationSuccessfulModal = (props) => {
+  return (
+    <Modal isOpen={props.show}
+           toggle={props.toggle}>
+      <ModalHeader toggle={props.toggle}>
+        Registration successful
+      </ModalHeader>
+      <ModalBody>
+        <p>Your registration was successful.</p>
+        <p>
+          <strong>User name:</strong> {props.username}<br />
+          <strong>Email:</strong> {props.email}
+        </p>
+        <p>
+          An activation link has been sent to your email address. Please
+          use it to activate your account. After activation, you may
+          log in.
+        </p>
+      </ModalBody>
+      <ModalFooter>
+        <Button color="primary"
+                onClick={props.toggle}>
+                Close
+        </Button>
+      </ModalFooter>
+    </Modal>
+  )
+};
 
 
 class RegisterLogin extends Component {
