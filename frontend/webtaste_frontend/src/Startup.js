@@ -5,42 +5,39 @@ import { withRouter } from 'react-router-dom'
 import Tooltip from './Tooltip'
 
 
-class AlgorithmInput extends Component {
-  render() {
-    let inputField;
+const AlgorithmInput = (props) => {
+  let inputField;
 
-    if (this.props.modality === "gustatory") {
-      inputField = (
-          <Input type="select" name="algorithm" id={this.props.id}
-              // Disabled if no modality has been selected so far
-                 disabled={this.props.modality === ""}
-                 value={this.props.value}
-                 onChange={this.props.onChange}
-                 required>
-            <option disabled value="" hidden>– select –</option>
-            <option>QUEST+</option>
-            <option>QUEST</option>
-          </Input>
-      )
-    } else {
-
-      inputField = (
-          <Input type="select" name="algorithm" id={this.props.id}
-              // Disabled if no modality has been selected so far
-                 disabled={this.props.modality === ""}
-                 value={this.props.value}
-                 onChange={this.props.onChange}
-                 required>
-            <option disabled value="" hidden>– select –</option>
-            <option>QUEST</option>
-            {/*<option>Hummel</option>*/}
-          </Input>
-      )
-    }
-
-    return inputField;
+  if (props.modality === "gustatory") {
+    inputField = (
+      <Input type="select" name="algorithm" id={props.id}
+             // Disabled if no modality has been selected so far
+             disabled={props.modality === ""}
+             value={props.value}
+             onChange={props.onChange}
+             required>
+        <option disabled value="" hidden>– select –</option>
+        <option>QUEST+</option>
+        <option>QUEST</option>
+      </Input>
+    )
+  } else {
+    inputField = (
+      <Input type="select" name="algorithm" id={props.id}
+            // Disabled if no modality has been selected so far
+             disabled={props.modality === ""}
+             value={props.value}
+             onChange={props.onChange}
+             required>
+        <option disabled value="" hidden>– select –</option>
+        <option>QUEST</option>
+        {/*<option>Hummel</option>*/}
+      </Input>
+    )
   }
-}
+
+    return inputField
+};
 
 class SubstanceInput extends Component {
   render() {
