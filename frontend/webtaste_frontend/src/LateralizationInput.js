@@ -1,7 +1,7 @@
 import React from 'react';
 import { Input } from "reactstrap";
 
-export const LateralizationInput = (props) => {
+export const LateralizationInputField = (props) => {
   return (
     <Input type="select" name="lateralization" id="lateralization"
            value={props.lateralization}

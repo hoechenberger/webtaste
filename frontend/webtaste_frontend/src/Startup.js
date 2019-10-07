@@ -4,7 +4,7 @@ import { withRouter } from 'react-router-dom'
 import Tooltip from './Tooltip'
 import { AlgorithmInput } from "./AlgorithmInputForm";
 import { SubstanceInputField, SubstanceInputLabel, SubstanceInputTooltip } from "./SubstanceInput";
-import { LateralizationInput } from "./LateralizationInputForm";
+import { LateralizationInputField } from "./LateralizationInput";
 import { AgeInputField } from "./AgeInput";
 
 class Startup extends Component {
@@ -398,7 +398,7 @@ class Startup extends Component {
                   <Tooltip text={"Whether to test on both sides (bilateral testing) or on only " +
                                  "one side (unilateral testing)."}
                            id="tooltip-lateralization"/>
-                  <LateralizationInput
+                  <LateralizationInputField
                     value={this.state.lateralization}
                     onChange={this.handleLateralizationChange}
                   />
