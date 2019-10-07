@@ -10,13 +10,11 @@ import MeasurementsOverview from "./MeasurementsOverview";
 
 
 class App extends Component {
-  initialState = {
+  state = {
     loggedIn: false,
     userName: null,
     metadata: {}
   };
-
-  state = this.initialState;
 
   componentDidMount = async () => {
     await this._checkIfLoggedInAlready();
