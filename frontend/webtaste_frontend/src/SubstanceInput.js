@@ -58,7 +58,7 @@ export const SubstanceInputField = (props) => {
     <Input name="substance"
            type="select"
            id={props.id}
-           value={props.substance}
+           value={props.value}
            onChange={props.onChange}
            disabled={disabled}
            required>

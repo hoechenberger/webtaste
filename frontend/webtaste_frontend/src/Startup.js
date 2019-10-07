@@ -386,7 +386,7 @@ class Startup extends Component {
                   <SubstanceInputTooltip />
                   <SubstanceInputField
                       modality={this.state.modality}
-                      substance={this.state.substance}
+                      value={this.state.substance}
                       onChange={this.handleSubstanceChange}
                       id="substance"
                   />
