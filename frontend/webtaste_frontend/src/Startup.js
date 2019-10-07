@@ -401,6 +401,7 @@ class Startup extends Component {
                   <LateralizationInputField
                     value={this.state.lateralization}
                     onChange={this.handleLateralizationChange}
+                    id="lateralization"
                   />
                 </FormGroup>
                 {(this.state.modality === "olfactory") && (this.state.algorithm === 'Hummel') ? (
