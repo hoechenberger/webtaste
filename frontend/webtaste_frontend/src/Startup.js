@@ -3,9 +3,9 @@ import { Button, Card, CardBody, CardHeader, Collapse, Form, FormGroup, Input, L
 import { withRouter } from 'react-router-dom'
 import Tooltip from './Tooltip'
 import { AlgorithmInput } from "./AlgorithmInputForm";
-import { SubstanceInput } from "./SubstanceInputForm";
+import { SubstanceInputField, SubstanceInputLabel, SubstanceInputTooltip } from "./SubstanceInput";
 import { LateralizationInput } from "./LateralizationInputForm";
-
+import { AgeInput } from "./AgeInputForm";
 
 class Startup extends Component {
   state = {
@@ -321,11 +321,9 @@ class Startup extends Component {
                   </Label>
                   <Tooltip text="The participant's age, in years."
                            id="tooltip-age"/>
-                  <Input type="number" name="age" id="age" min="0" max="120"
-                         placeholder="Age in years"
-                         value={this.state.age}
-                         onChange={this.handleAgeChange}
-                         required />
+                  <AgeInput age={this.state.age}
+                            handleAgeChange={this.handleAgeChange}
+                  />
                 </FormGroup>
 
                 <FormGroup>
@@ -384,15 +382,11 @@ class Startup extends Component {
                   />
                 </FormGroup>
                 <FormGroup>
-                  <Label for="substance"  className="input-label-required">
-                    Substance
-                  </Label>
-                  <Tooltip text={"Which substance to test. See the documentation for an overview " +
-                                 "of required dilutions."}
-                           id="tooltip-substance"/>
-                  <SubstanceInput
+                  <SubstanceInputLabel />
+                  <SubstanceInputTooltip />
+                  <SubstanceInputField
                       modality={this.state.modality}
-                      value={this.state.substance}
+                      substance={this.state.substance}
                       onChange={this.handleSubstanceChange}
                       id="substance"
                   />
