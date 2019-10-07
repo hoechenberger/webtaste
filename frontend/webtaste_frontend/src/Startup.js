@@ -5,7 +5,7 @@ import Tooltip from './Tooltip'
 import { AlgorithmInput } from "./AlgorithmInputForm";
 import { SubstanceInputField, SubstanceInputLabel, SubstanceInputTooltip } from "./SubstanceInput";
 import { LateralizationInput } from "./LateralizationInputForm";
-import { AgeInput } from "./AgeInputForm";
+import { AgeInputField } from "./AgeInput";
 
 class Startup extends Component {
   state = {
@@ -321,8 +321,8 @@ class Startup extends Component {
                   </Label>
                   <Tooltip text="The participant's age, in years."
                            id="tooltip-age"/>
-                  <AgeInput age={this.state.age}
-                            handleAgeChange={this.handleAgeChange}
+                  <AgeInputField value={this.state.age}
+                                 onChange={this.handleAgeChange}
                   />
                 </FormGroup>
 
