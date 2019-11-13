@@ -4,8 +4,7 @@ import React from "react";
 const GustatoryAlgorithmInput = (props) => {
   return (
     <Input type="select" name="algorithm" id={props.id}
-          // Disabled if no modality has been selected so far
-           disabled={props.modality === ""}
+           disabled={props.disabled}
            value={props.value}
            onChange={props.onChange}
            required>
@@ -19,8 +18,7 @@ const GustatoryAlgorithmInput = (props) => {
 const OlfactoryAlgorithmInput = (props) => {
   return (
     <Input type="select" name="algorithm" id={props.id}
-          // Disabled if no modality has been selected so far
-           disabled={props.modality === ""}
+           disabled={props.disabled}
            value={props.value}
            onChange={props.onChange}
            required>
@@ -32,9 +30,13 @@ const OlfactoryAlgorithmInput = (props) => {
 };
 
 export const AlgorithmInput = (props) => {
-  return (
-    props.modality === "gustatory" ?
-      <GustatoryAlgorithmInput /> :
-      <OlfactoryAlgorithmInput />
-  )
+  if (props.modality === "gustatory") {
+    return  <GustatoryAlgorithmInput value={props.value}
+                                     onChange={props.onChange} />;
+  } else if (props.modality === "olfactory") {
+    return <OlfactoryAlgorithmInput value={props.value}
+                                    onChange={props.onChange} />;
+  } else {
+    return  <GustatoryAlgorithmInput disabled={true}/>;
+  }
 };
