@@ -6,6 +6,7 @@ import { AlgorithmInput } from "./AlgorithmInputForm";
 import { SubstanceInputField, SubstanceInputLabel, SubstanceInputTooltip } from "./SubstanceInput";
 import { LateralizationInputField } from "./LateralizationInput";
 import { AgeInputField } from "./AgeInput";
+import { MaxTrialCountInputField } from "./MaxTrialCountInput";
 
 class Startup extends Component {
   state = {
@@ -24,6 +25,7 @@ class Startup extends Component {
     studies: [],
     studyName: "",
     newStudyName: "",
+    maxTrialCount: 20,
     date: ""
   };
 
@@ -150,6 +152,7 @@ class Startup extends Component {
       studyName: this.state.newStudyName ?
           this.state.newStudyName : this.state.studyName,
       // Don't forget to add the current date & time :-)
+      maxTrialCount: this.state.maxTrialCount,
       date: new Date().toUTCString()
     };
 
@@ -245,6 +248,11 @@ class Startup extends Component {
       this.setState({startVal: startVal});
     }
   };
+
+  handleMaxTrialCountChange = (e) => {
+    this.setState({maxTrialCount: e.target.value});
+  };
+
 
   render () {
     return (
@@ -422,6 +430,17 @@ class Startup extends Component {
                         </FormGroup>
                     ) : null
                 }
+
+                <FormGroup>
+                  <Label for="max-trial-count" className="input-label-required">
+                    Max. number of trials
+                  </Label>
+                  <Tooltip text="Maximum number of trials to run."
+                           id="tooltip-max-trial-count"/>
+                  <MaxTrialCountInputField value={this.state.maxTrialCount}
+                                           onChange={this.handleMaxTrialCountChange}
+                  />
+                </FormGroup>
 
                 <FormGroup>
                   <Label for="session">Session</Label>

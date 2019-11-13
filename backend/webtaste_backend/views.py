@@ -405,6 +405,12 @@ class MeasurementWithoutIdApi(Resource):
                 assert k == 'startVal'
                 metadata['startVal'] = None
 
+        if metadata['maxTrialCount']:
+            # Convert to integer, as JSON object only stores strings
+            metadata['maxTrialCount'] = int(metadata['maxTrialCount'])
+        else:
+            metadata['maxTrialCount'] = 20
+
         if metadata['modality'] == 'gustatory':
             if metadata['algorithm'] == 'QUEST':
                 staircase_handler = _init_quest_gustatory(metadata)
@@ -1356,7 +1362,7 @@ def _init_quest_gustatory(metadata):
     start_val = get_start_val(modality=modality, substance=substance)
 
     sd = np.log10(20)
-    max_trials = 20
+    max_trials = metadata['maxTrialCount']
     concentration_steps = gen_concentration_steps(modality, substance)
     range_ = 2 * np.abs(concentration_steps.max() - concentration_steps.min())
 
@@ -1381,7 +1387,7 @@ def _init_questplus_gustatory(metadata):
     lower_asymptotes = np.linspace(0.01, 0.5, 5)
     lapse_rates = (0.01,)
     start_val = get_start_val(modality=modality, substance=substance)
-    max_trials = 20
+    max_trials = metadata['maxTrialCount']
     responses = ('Yes', 'No')
     stim_scale = 'log10'
     stim_selection_method = 'minNEntropy'
@@ -1413,7 +1419,7 @@ def _init_quest_olfactory(metadata):
 
     start_val = get_start_val(modality=modality, substance=substance)
     sd = np.log10(20)
-    max_trials = 20
+    max_trials = metadata['maxTrialCount']
     range_ = 20
 
     q = QuestHandler(startVal=start_val,

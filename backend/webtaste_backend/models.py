@@ -24,6 +24,7 @@ measurement_metadata = api.model('Measurement Metadata', {
                                    'both sides']),
     'startVal': Integer(description='Starting concentration',
                         enum=[15, 16], example=15),
+    'maxTrialCount': Integer(description='Max. number of trials to run'),
     'sessionName': String(description='Session',
                           required=True, example='Test'),
     'date': String(description='Date', required=True)})
@@ -210,6 +211,7 @@ class MeasurementMetadata(db.Model):
     lateralization = db.Column(db.String(length=30))
     startVal = db.Column(db.Float)
     sessionName = db.Column(db.String(length=100))
+    maxTrialCount = db.Column(db.Integer())
     date = db.Column(db.String(length=100))
 
     measurementId = db.Column(db.Integer, db.ForeignKey('measurements.id'))
