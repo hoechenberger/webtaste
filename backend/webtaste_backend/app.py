@@ -49,6 +49,7 @@ db.create_all()  # We must do this AFTER importing views.
 
 # In development mode, make sure we can log in!
 if app.config['ENV'] == 'development':
+    print('Running in development environment.')
     from datetime import datetime
     from .models import User
 
@@ -70,7 +71,10 @@ if app.config['ENV'] == 'development':
                      .first())
 
     # Only create user if it doesn't exist already.
-    if existing_user is None:
+    if existing_user is not None:
+        print(f'Found existing default user: {existing_user}')
+    else:
+        print(f'Default user {existing_user} not found, creating...')
         user = User(name=user_name,
                     password=password_hash,
                     email=email,

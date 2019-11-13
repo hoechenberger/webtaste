@@ -1,88 +1,18 @@
 import React, { Component } from 'react';
-import { Button, Form, FormGroup, Label, Input,
-  Card, CardBody, CardHeader, Collapse } from 'reactstrap';
+import { Button, Card, CardBody, CardHeader, Collapse, Form, FormGroup, Input, Label } from 'reactstrap';
 import { withRouter } from 'react-router-dom'
 import Tooltip from './Tooltip'
-
-
-class AlgorithmInput extends Component {
-  render() {
-    let inputField;
-
-    if (this.props.modality === "gustatory") {
-      inputField = (
-          <Input type="select" name="algorithm" id={this.props.id}
-              // Disabled if no modality has been selected so far
-                 disabled={this.props.modality === ""}
-                 value={this.props.value}
-                 onChange={this.props.onChange}
-                 required>
-            <option disabled value="" hidden>– select –</option>
-            <option>QUEST+</option>
-            <option>QUEST</option>
-          </Input>
-      )
-    } else {
-
-      inputField = (
-          <Input type="select" name="algorithm" id={this.props.id}
-              // Disabled if no modality has been selected so far
-                 disabled={this.props.modality === ""}
-                 value={this.props.value}
-                 onChange={this.props.onChange}
-                 required>
-            <option disabled value="" hidden>– select –</option>
-            <option>QUEST</option>
-            {/*<option>Hummel</option>*/}
-          </Input>
-      )
-    }
-
-    return inputField;
-  }
-}
-
-class SubstanceInput extends Component {
-  render() {
-    let inputField;
-    if (this.props.modality === "gustatory") {
-      inputField = (
-          <Input type="select" name="substance" id={this.props.id}
-              // Disabled if no modality has been selected so far
-                 disabled={this.props.modality === ""}
-                 value={this.props.value}
-                 onChange={this.props.onChange}
-                 required>
-            <option disabled value="" hidden>– select –</option>
-            <option>sucrose</option>
-            <option>citric acid</option>
-            <option>sodium chloride</option>
-            <option>quinine hydrochloride</option>
-          </Input>
-      )
-    } else {
-      inputField = (
-          <Input type="select" name="substance" id={this.props.id}
-              // Disabled if no modality has been selected so far
-                 disabled={this.props.modality === ""}
-                 value={this.props.value}
-                 onChange={this.props.onChange}
-                 required>
-            <option disabled value="" hidden>– select –</option>
-            <option>2-phenylethanol</option>
-            <option>n-butanol</option>
-          </Input>
-      )
-    }
-
-    return inputField;
-  }
-}
+import { AlgorithmInput } from "./AlgorithmInputForm";
+import { SubstanceInputField, SubstanceInputLabel, SubstanceInputTooltip } from "./SubstanceInput";
+import { LateralizationInputField } from "./LateralizationInput";
+import { AgeInputField } from "./AgeInput";
+import { MaxTrialCountInputField } from "./MaxTrialCountInput";
 
 class Startup extends Component {
   state = {
+    studyInfoCardIsOpen: true,
     participantInfoCardIsOpen: true,
-    experimentSettingsCardIsOpen: false,
+    experimentSettingsCardIsOpen: true,
     participant: "",
     age: "",
     gender: "",
@@ -95,6 +25,7 @@ class Startup extends Component {
     studies: [],
     studyName: "",
     newStudyName: "",
+    maxTrialCount: 20,
     date: ""
   };
 
@@ -221,6 +152,7 @@ class Startup extends Component {
       studyName: this.state.newStudyName ?
           this.state.newStudyName : this.state.studyName,
       // Don't forget to add the current date & time :-)
+      maxTrialCount: this.state.maxTrialCount,
       date: new Date().toUTCString()
     };
 
@@ -231,6 +163,11 @@ class Startup extends Component {
     this.saveStateToLocalStorage();
     this.props.onSubmit(studyId, metadata);
     this.props.history.push('/measurement')
+  };
+
+  toggleStudyInfoCard = () => {
+    const studyInfoCardIsOpen = !this.state.studyInfoCardIsOpen;
+    this.setState({studyInfoCardIsOpen: studyInfoCardIsOpen});
   };
 
   toggleParticipantInfoCard = () => {
@@ -312,6 +249,11 @@ class Startup extends Component {
     }
   };
 
+  handleMaxTrialCountChange = (e) => {
+    this.setState({maxTrialCount: e.target.value});
+  };
+
+
   render () {
     return (
       <div className="measurement-info">
@@ -319,43 +261,45 @@ class Startup extends Component {
               onSubmit={this.handleSubmit}
               className="measurement-info-form">
           <Card className="study-info-card">
-            <CardHeader onClick={this.toggleParticipantInfoCard}>
+            <CardHeader onClick={this.toggleStudyInfoCard}>
               Study Info
             </CardHeader>
-            <CardBody>
-              <FormGroup>
-                <Label for="study" className="input-label-required">
-                  Study name
-                </Label>
-                <Tooltip text="The name of the study this measurement belongs to."
-                         id="tooltip-study"/>
+            <Collapse isOpen={this.state.studyInfoCardIsOpen}>
+              <CardBody>
+                <FormGroup>
+                  <Label for="study" className="input-label-required">
+                    Study name
+                  </Label>
+                  <Tooltip text="The name of the study this measurement belongs to."
+                           id="tooltip-study"/>
 
-                <Input type="select" name="study" id="study"
-                       value={this.state.studyName}
-                       onChange={this.handleStudyChange}
-                       required>
-                  <option value="" hidden>– select –</option>
-                  <option value="_new">Create new …</option>
-                  {this.state.studies.map(
-                      (study, index) => <option key={index}>{study.name}</option>
-                  )}
-                </Input>
-              </FormGroup>
+                  <Input type="select" name="study" id="study"
+                         value={this.state.studyName}
+                         onChange={this.handleStudyChange}
+                         required>
+                    <option value="" hidden>– select –</option>
+                    <option value="_new">Create new …</option>
+                    {this.state.studies.map(
+                        (study, index) => <option key={index}>{study.name}</option>
+                    )}
+                  </Input>
+                </FormGroup>
 
-              {this.state.studyName === "_new"
-                  ? (<FormGroup>
-                    <Label for="study-new" className="input-label-required">
-                      Create new study
-                    </Label>
-                    <Input name="study-new" id="study-new"
-                           placeholder="e.g. NIH Grant 123"
-                           value={this.state.newStudyName}
-                           onChange={this.handleNewStudyChange}
-                           required/>
-                  </FormGroup>)
-                  : null
-              }
-            </CardBody>
+                {this.state.studyName === "_new"
+                    ? (<FormGroup>
+                      <Label for="study-new" className="input-label-required">
+                        Create new study
+                      </Label>
+                      <Input name="study-new" id="study-new"
+                             placeholder="e.g. NIH Grant 123"
+                             value={this.state.newStudyName}
+                             onChange={this.handleNewStudyChange}
+                             required/>
+                    </FormGroup>)
+                    : null
+                }
+              </CardBody>
+            </Collapse>
           </Card>
           <Card className="participant-info-card">
             <CardHeader onClick={this.toggleParticipantInfoCard}>
@@ -385,11 +329,9 @@ class Startup extends Component {
                   </Label>
                   <Tooltip text="The participant's age, in years."
                            id="tooltip-age"/>
-                  <Input type="number" name="age" id="age" min="0" max="120"
-                         placeholder="Age in years"
-                         value={this.state.age}
-                         onChange={this.handleAgeChange}
-                         required />
+                  <AgeInputField value={this.state.age}
+                                 onChange={this.handleAgeChange}
+                  />
                 </FormGroup>
 
                 <FormGroup>
@@ -448,20 +390,15 @@ class Startup extends Component {
                   />
                 </FormGroup>
                 <FormGroup>
-                  <Label for="substance"  className="input-label-required">
-                    Substance
-                  </Label>
-                  <Tooltip text={"Which substance to test. See the documentation for an overview " +
-                                 "of required dilutions."}
-                           id="tooltip-substance"/>
-                  <SubstanceInput
+                  <SubstanceInputLabel />
+                  <SubstanceInputTooltip />
+                  <SubstanceInputField
                       modality={this.state.modality}
                       value={this.state.substance}
                       onChange={this.handleSubstanceChange}
                       id="substance"
                   />
                 </FormGroup>
-
                 <FormGroup>
                   <Label for="lateralization" className="input-label-required">
                     Lateralization
@@ -469,15 +406,11 @@ class Startup extends Component {
                   <Tooltip text={"Whether to test on both sides (bilateral testing) or on only " +
                                  "one side (unilateral testing)."}
                            id="tooltip-lateralization"/>
-                  <Input type="select" name="lateralization" id="lateralization"
-                         value={this.state.lateralization}
-                         onChange={this.handleLateralizationChange}
-                         required>
-                    <option disabled value="" hidden>– select –</option>
-                    <option>both sides</option>
-                    <option>left side</option>
-                    <option>right side</option>
-                  </Input>
+                  <LateralizationInputField
+                    value={this.state.lateralization}
+                    onChange={this.handleLateralizationChange}
+                    id="lateralization"
+                  />
                 </FormGroup>
                 {(this.state.modality === "olfactory") && (this.state.algorithm === 'Hummel') ? (
                         <FormGroup>
@@ -497,6 +430,17 @@ class Startup extends Component {
                         </FormGroup>
                     ) : null
                 }
+
+                <FormGroup>
+                  <Label for="max-trial-count" className="input-label-required">
+                    Max. number of trials
+                  </Label>
+                  <Tooltip text="Maximum number of trials to run."
+                           id="tooltip-max-trial-count"/>
+                  <MaxTrialCountInputField value={this.state.maxTrialCount}
+                                           onChange={this.handleMaxTrialCountChange}
+                  />
+                </FormGroup>
 
                 <FormGroup>
                   <Label for="session">Session</Label>

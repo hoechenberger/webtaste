@@ -1,52 +1,88 @@
-import React, { Component } from 'react';
+import React  from 'react';
 import { Button, Card, CardHeader, CardBody } from 'reactstrap';
-import { withRouter } from 'react-router-dom'
+import { useHistory } from 'react-router-dom'
+import navTargets from "./Navigation";
 
-class Landing extends Component {
-  componentDidMount = async () => {
-    if (!this.props.loggedIn) {
-      this.navigateToLogin();
-    }
-  };
 
-  componentDidUpdate = this.componentDidMount;
+const Landing = (props) => {
+  let history = useHistory();
 
-  navigateToStartup = () => {
-    this.props.history.push('/startup')
-  };
+  const loggedIn = props.loggedIn;
+  const userName = props.userName;
+  const onLogout = props.onLogout;
 
-  navigateToMeasurements = () => {
-    this.props.history.push('/measurements_overview')
-  };
-
-  navigateToAccountSettings = () => {
-    this.props.history.push('/account')
-  };
-
-  navigateToLogin = () => {
-    this.props.history.push('/')
-  };
-
-  logout = () => {
-    this.props.onLogout();
-    this.props.history.push('/')
-  };
-
-  render = () => {
-      return(
-        <div>
-          <Card className="landing-card">
-            <CardHeader>Hello, {this.props.userName}!</CardHeader>
-            <CardBody>
-              <Button color="success" size="lg" block onClick={this.navigateToStartup}>New Measurement</Button>
-              <Button color="primary" size="lg" block onClick={this.navigateToMeasurements}>Completed Measurements</Button>
-              <Button color="warning" size="lg" block onClick={this.navigateToAccountSettings}>Account Settings</Button>
-              <Button color="danger" size="lg" block onClick={this.logout}>Logout</Button>
-            </CardBody>
-          </Card>
-        </div>
-      );
+  if (!loggedIn) {
+    const target = navTargets.login;
+    history.push(target);
   }
-}
 
-export default withRouter(Landing);
+  return(
+    <div>
+      <Card className="landing-card">
+        <CardHeader>Hello, {userName}!</CardHeader>
+        <CardBody>
+          <NewMeasurementButton />
+          <MeasurementsOverviewButton />
+          <AccountSettingsButton />
+          <LogoutButton onLogout={onLogout}/>
+        </CardBody>
+      </Card>
+    </div>
+  )
+};
+
+const NewMeasurementButton = () => {
+  let history = useHistory();
+  const target = navTargets.newMeasurement;
+
+  return (
+    <Button color="success" size="lg" block
+            onClick={() => history.push(target)}>
+      New Measurement
+    </Button>
+  )
+};
+
+const MeasurementsOverviewButton = () => {
+  let history = useHistory();
+  const target = navTargets.masurementsOverview;
+
+  return (
+    <Button color="primary" size="lg" block
+            onClick={() => history.push(target)}>
+      Completed Measurements
+    </Button>
+  )
+};
+
+const AccountSettingsButton = () => {
+  let history = useHistory();
+  const target = navTargets.account;
+
+  return (
+    <Button color="warning" size="lg" block
+            onClick={() => history.push(target)}>
+      Account Settings
+    </Button>
+  )
+};
+
+const LogoutButton = (props) => {
+  let history = useHistory();
+  const target = navTargets.login;
+
+  const onClick = async () => {
+    await props.onLogout();
+    history.push(target);
+  };
+
+  return (
+    <Button color="danger" size="lg" block
+            onClick={onClick}>
+      Logout
+    </Button>
+  )
+};
+
+
+export default Landing;
