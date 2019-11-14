@@ -1,5 +1,4 @@
-# `webtaste` — Web-based taste sensitivity estimation
+# `webtaste` — Web-based taste and smell sensitivity estimation
 
-Work in progress — please check back shortly!
-
-We are working hard to make this software available to you soon after AChemS XL. If you would like to get in touch, please drop me a message at `richard.hoechenberger@gmail.com`.
+This software is live at [sensory-testing.org](https://sensory-testing.org).
+For questions, please get in touch with me at `richard.hoechenberger@gmail.com`.
