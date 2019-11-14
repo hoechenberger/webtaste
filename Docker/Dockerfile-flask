@@ -5,7 +5,7 @@ RUN conda install -y -c conda-forge \
     flask flask-login flask-restplus flask-sqlalchemy \
     gunicorn passlib itsdangerous json_tricks mysqlclient \
     openpyxl configobj matplotlib pillow xlsxwriter future \
-    questplus
+    "questplus >=0.0.5"
 
 # Install version of PsychoPy that supports QUEST+
 RUN conda clean --all -y
