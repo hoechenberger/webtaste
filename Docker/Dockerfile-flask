@@ -1,10 +1,10 @@
 FROM continuumio/miniconda3:latest
 
-RUN conda update -y -n base conda
+RUN conda update -y -n base -c defaults conda
 RUN conda install -y -c conda-forge \
     flask flask-login flask-restplus flask-sqlalchemy \
     gunicorn passlib itsdangerous json_tricks mysqlclient \
-    openpyxl configobj matplotlib pillow xlsxwriter future \
+    openpyxl configobj matplotlib-base pillow xlsxwriter future \
     "questplus >=2019.4"
 
 # Install version of PsychoPy that supports QUEST+
