@@ -194,3 +194,25 @@ def send_email(user, to_address, message_type, token=None):
                f'email to {to_address}.')
         print(msg)
     server.quit()
+
+
+def threshold_to_sample_num(concentration_steps, threshold_param):
+    # Find sample number corresponding to threshold
+    # Find nearest concentration
+    idx = np.abs(concentration_steps - threshold_param).argmin()
+    # Difference > 0: threshold is LOWER than concentration,
+    # i.e. to be found at a higher dilution step
+    # Difference < 0: threshold is HIGHER than concentration,
+    # i.e. to be found at a lower dilution step
+    diff = concentration_steps[idx] - threshold_param
+    # Relative difference, i.e., in numbers of dilutions steps.
+    diff_abs = np.abs(diff)
+    diff_rel = diff_abs / (concentration_steps[0] -
+                           concentration_steps[1])
+    if diff > 0:
+        threshold_param_sample_num = idx + 1 + diff_rel
+    elif diff < 0:
+        threshold_param_sample_num = idx + 1 - diff_rel
+    else:
+        threshold_param_sample_num = idx + 1
+    return threshold_param_sample_num

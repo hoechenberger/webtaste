@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from flask_restplus.fields import String, Integer, Float, Boolean, Nested
+import numpy as np
 from .app import api, db, login_manager
 from .constants import SUBSTANCES
 
@@ -191,11 +192,24 @@ class Measurement(db.Model):
                                 back_populates='measurement',
                                 cascade='all, delete, delete-orphan')
 
-    threshold = db.Column(db.Float)
-    thresholdSampleNumber = db.Column(db.Float)
-    slope = db.Column(db.Float)
-    lowerAsymptote = db.Column(db.Float)
-    lapseRate = db.Column(db.Float)
+    thresholdParam = db.Column(db.Float)
+    thresholdParamPrior = db.Column(db.Text(length=10000))
+
+    slopeParam = db.Column(db.Float)
+    slopeParamPrior = db.Column(db.Text(length=10000))
+
+    lowerAsymptoteParam = db.Column(db.Float)
+    lowerAsymptoteParamPrior = db.Column(db.Text(length=10000))
+
+    lapseRateParam = db.Column(db.Float)
+    lapseRateParamPrior = db.Column(db.Text(length=10000))
+
+    thresholdParamSampleNumber = db.Column(db.Float)
+    thresholdAtDp1 = db.Column(db.Float)
+    thresholdAtDp1SampleNumber = db.Column(db.Float)
+
+    randomSeed = db.Column(db.Integer,
+                           default=lambda: np.random.randint(10000))
 
 
 class MeasurementMetadata(db.Model):

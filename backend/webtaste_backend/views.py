@@ -19,7 +19,8 @@ import matplotlib.pyplot as plt
 from .app import api, db, crypto_context, serializer_for_email_confirmation
 from . import models
 from .utils import (find_nearest, get_start_val, get_sample_number,
-                    gen_concentration_steps, send_email)
+                    gen_concentration_steps, send_email,
+                    threshold_to_sample_num)
 
 
 @api.route('/api/')
@@ -380,6 +381,26 @@ class MeasurementWithoutIdApi(Resource):
         print('Creating new staircase …')
         payload = request.json
 
+        user = current_user
+        user_id = user.id
+
+        mask = ((models.Study.userId == user_id) &
+                (models.Study.id == study_id))
+        study = (models.Study
+                 .query
+                 .filter(mask)
+                 .first())
+
+        if not study.measurements:
+            measurement_number = 1
+        else:
+            measurement_number = study.measurements[-1].number + 1
+
+        measurement = models.Measurement()
+        measurement.number = measurement_number
+        measurement.study = study
+        measurement.state = 'created'
+
         # # Our schema says we expect an integer, but we would also like to
         # # accept a "null" value here, which is currently not supported in
         # # Swagger / flask-restplus, so we have to hack around this.
@@ -415,7 +436,8 @@ class MeasurementWithoutIdApi(Resource):
             if metadata['algorithm'] == 'QUEST':
                 staircase_handler = _init_quest_gustatory(metadata)
             elif metadata['algorithm'] == 'QUEST+':
-                staircase_handler = _init_questplus_gustatory(metadata)
+                staircase_handler = _init_questplus_gustatory(metadata,
+                                                              random_seed=measurement.randomSeed)
         elif metadata['modality'] == 'olfactory':
             if metadata['algorithm'] == 'QUEST':
                 staircase_handler = _init_quest_olfactory(metadata)
@@ -424,26 +446,6 @@ class MeasurementWithoutIdApi(Resource):
 
         staircase_handler.originPath = ''
         staircase_handler.origin = ''
-
-        user = current_user
-        user_id = user.id
-
-        mask = ((models.Study.userId == user_id) &
-                (models.Study.id == study_id))
-        study = (models.Study
-                 .query
-                 .filter(mask)
-                 .first())
-
-        if not study.measurements:
-            measurement_number = 1
-        else:
-            measurement_number = study.measurements[-1].number + 1
-
-        measurement = models.Measurement()
-        measurement.number = measurement_number
-        measurement.study = study
-        measurement.state = 'created'
 
         metadata_ = models.MeasurementMetadata(**metadata)
         metadata_.measurement = measurement
@@ -496,6 +498,15 @@ class MeasurementWithIdApi(Resource):
 
             if measurement.study.userId != user_id:
                 abort(403)
+
+            if measurement.metadata_.algorithm == 'QUEST+':
+                print(f'Threshold param sample number:   {measurement.thresholdParamSampleNumber}')
+                print(f'Threshold at dp=1 sample number: {measurement.thresholdAtDp1SampleNumber}')
+
+                measurement.threshold = measurement.thresholdAtDp1
+                measurement.thresholdSampleNumber = measurement.thresholdAtDp1SampleNumber
+            else:
+                measurement.threshold = measurement.thresholdParam
 
             data = marshal(measurement, models.measurement)
             data['links'] = {
@@ -725,16 +736,32 @@ class TrialsWithoutNumber(Resource):
         except StopIteration:
             finished = True
             if measurement.metadata_.algorithm == 'QUEST+':
-                threshold = staircase_handler_.paramEstimate['threshold']
-                slope = staircase_handler_.paramEstimate['slope']
-                lower_asymptote = staircase_handler_.paramEstimate['lowerAsymptote']
-                lapse_rate = staircase_handler_.paramEstimate['lapseRate']
-            else:
-                threshold = staircase_handler_.mean()
-                slope = staircase_handler_._quest.beta
-                lower_asymptote = staircase_handler_._quest.gamma
-                lapse_rate = staircase_handler_._quest.delta
+                threshold_param = staircase_handler_.paramEstimate['threshold']
+                slope_param = staircase_handler_.paramEstimate['slope']
+                lower_asymptote_param = staircase_handler_.paramEstimate['lowerAsymptote']
+                lapse_rate_param = staircase_handler_.paramEstimate['lapseRate']
 
+                from questplus.psychometric_function import weibull
+                import scipy.stats
+
+                x = np.linspace(concentration_steps[0],
+                                concentration_steps[-1],
+                                10000)
+                y = weibull(intensity=x,
+                            threshold=threshold_param,
+                            slope=slope_param,
+                            lower_asymptote=lower_asymptote_param,
+                            lapse_rate=lapse_rate_param,
+                            scale='log10').squeeze().values
+                dp = scipy.stats.norm.ppf(y) - scipy.stats.norm.ppf(lower_asymptote_param)
+                dp_minus_1 = np.abs(dp - 1)
+                idx = dp_minus_1.argmin()
+                threshold_at_dp_1 = x[idx]
+            else:
+                threshold_param = staircase_handler_.mean()
+                slope_param = staircase_handler_._quest.beta
+                lower_asymptote_param = staircase_handler_._quest.gamma
+                lapse_rate_param = staircase_handler_._quest.delta
         if not finished:
             concentration = find_nearest(concentration_steps,
                                          proposed_concentration)
@@ -821,36 +848,16 @@ class TrialsWithoutNumber(Resource):
             response = {'data': data}
             return response, 201, {'Location': data['links']['self']}
         else:
-            measurement.threshold = threshold
+            measurement.thresholdParam = threshold_param
+            measurement.thresholdParamSampleNumber = threshold_to_sample_num(concentration_steps, threshold_param)
 
-            # Find sample number corresponding to threshold
+            if measurement.metadata_.algorithm == 'QUEST+':
+                measurement.thresholdAtDp1 = threshold_at_dp_1
+                measurement.thresholdAtDp1SampleNumber = threshold_to_sample_num(concentration_steps, threshold_at_dp_1)
 
-            # Find nearest concentration
-            idx = np.abs(concentration_steps - threshold).argmin()
-
-            # Difference > 0: threshold is LOWER than concentration,
-            # i.e. to be found at a higher dilution step
-            # Difference < 0: threshold is HIGHER than concentration,
-            # i.e. to be found at a lower dilution step
-
-            diff = concentration_steps[idx] - threshold
-
-            # Relative difference, i.e., in numbers of dilutions steps.
-            diff_abs = np.abs(diff)
-            diff_rel = diff_abs / (concentration_steps[0] -
-                                   concentration_steps[1])
-
-            if diff > 0:
-                threshold_sample_num = idx + 1 + diff_rel
-            elif diff < 0:
-                threshold_sample_num = idx + 1 - diff_rel
-            else:
-                threshold_sample_num = idx + 1
-
-            measurement.thresholdSampleNumber = threshold_sample_num
-            measurement.slope = slope
-            measurement.lowerAsymptote = lower_asymptote
-            measurement.lapseRate = lapse_rate
+            measurement.slopeParam = slope_param
+            measurement.lowerAsymptoteParam = lower_asymptote_param
+            measurement.lapseRateParam = lapse_rate_param
             measurement.state = 'finished'
             db.session.add(measurement)
             db.session.commit()
@@ -1111,11 +1118,16 @@ def _gen_quest_report_gustation(measurement):
     date_utc = dt_utc.strftime('%Y-%m-%d %H:%M:%S')
     time_zone = 'GMT'
 
-    threshold = measurement.threshold
-    threshold_sample_num = measurement.thresholdSampleNumber
-    slope = measurement.slope
-    lower_asymptote = measurement.lowerAsymptote
-    lapse_rate = measurement.lapseRate
+    if measurement.metadata_.algorithm == 'QUEST+':
+        threshold = measurement.thresholdAtDp1
+        threshold_sample_num = measurement.thresholdAtDp1SampleNumber
+    else:
+        threshold = measurement.thresholdParam
+        threshold_sample_num = measurement.thresholdParamSampleNumber
+
+    slope = measurement.slopeParam
+    lower_asymptote = measurement.lowerAsymptoteParam
+    lapse_rate = measurement.lapseRateParam
 
     data_threshold = pd.DataFrame(
         dict(
@@ -1377,23 +1389,36 @@ def _init_quest_gustatory(metadata):
     return q
 
 
-def _init_questplus_gustatory(metadata):
+def _init_questplus_gustatory(metadata, random_seed):
+    import scipy.stats
     modality = 'gustatory'
     substance = metadata['substance']
 
     concentration_steps = gen_concentration_steps(modality, substance)
     thresholds = concentration_steps.copy()
-    slopes = np.linspace(0.5, 15, 5)
-    lower_asymptotes = np.linspace(0.01, 0.5, 5)
+    slopes = np.linspace(2, 4, 5)
+    lower_asymptotes = np.linspace(0.01, 0.2, 5)
     lapse_rates = (0.01,)
     start_val = get_start_val(modality=modality, substance=substance)
     max_trials = metadata['maxTrialCount']
     responses = ('Yes', 'No')
     stim_scale = 'log10'
     stim_selection_method = 'minNEntropy'
-    stim_selection_options = dict(n=3, max_consecutive_reps=2)
+    stim_selection_options = dict(N=3, maxConsecutiveReps=2,
+                                  randomSeed=random_seed)
     param_estimation_method = 'mean'
     func = 'weibull'
+
+    lower_asymptote_prior = scipy.stats.norm.pdf(x=lower_asymptotes,
+                                                 loc=0.06, scale=0.2)
+    lower_asymptote_prior = lower_asymptote_prior / lower_asymptote_prior.sum()
+
+    slope_prior = scipy.stats.norm.pdf(slopes,
+                                       loc=3, scale=1)
+    slope_prior = slope_prior / slope_prior.sum()
+
+    prior = dict(slope=slope_prior,
+                 lower_asymptote=lower_asymptote_prior)
 
     q = QuestPlusHandler(nTrials=max_trials,
                          startIntensity=start_val,
@@ -1402,6 +1427,7 @@ def _init_questplus_gustatory(metadata):
                          slopeVals=slopes,
                          lowerAsymptoteVals=lower_asymptotes,
                          lapseRateVals=lapse_rates,
+                         prior=prior,
                          responseVals=responses,
                          psychometricFunc=func,
                          stimScale=stim_scale,
