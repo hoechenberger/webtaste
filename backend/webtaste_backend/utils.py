@@ -62,7 +62,8 @@ def gen_concentration_steps(modality, substance):
             #                              0.002,
             #                              num=12))
             return np.flipud(np.arange(-3.5, -0.5+0.25, 0.25))
-        elif substance == 'quinine hydrochloride':
+        elif (substance == 'quinine hydrochloride' or
+              substance == 'quinine hemisulfate'):
             # return np.log10(np.geomspace(0.12255644907247643,
             #                              1.5000000000000004e-05,
             #                              num=18))
@@ -106,7 +107,8 @@ def get_start_val(modality, substance):
             return c[3]
         elif substance == 'sodium chloride':
             return c[2]
-        elif substance == 'quinine hydrochloride':
+        elif (substance == 'quinine hydrochloride' or
+              substance == 'quinine hemisulfate'):
             return c[7]
         else:
             raise ValueError('Invalid substance specified.')
