@@ -8,5 +8,6 @@ SUBSTANCES = ['sucrose',
               'citric acid',
               'sodium chloride',
               'quinine hydrochloride',
+              'quinine hemisulfate',
               '2-phenylethanol',
               'n-butanol']

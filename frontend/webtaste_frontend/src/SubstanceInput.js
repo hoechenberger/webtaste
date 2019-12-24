@@ -25,6 +25,7 @@ const GustatorySubstanceInputOptions = () => {
       <option>sodium chloride</option>
       <option>sucrose</option>
       <option>quinine hydrochloride</option>
+      <option>quinine hemisulfate</option>
     </React.Fragment>
   )
 };
