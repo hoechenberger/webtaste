@@ -60,7 +60,7 @@ services:
     build:
       context: ../backend
       dockerfile: ${PWD}/Dockerfile-flask
-    image: hoechenberger/webtaste-flask:latest
+    image: hoechenberger/webtaste-flask:2020.1
     expose:
       - 8000
     env_file:
@@ -70,7 +70,7 @@ services:
     build:
       context: ../frontend/webtaste_frontend
       dockerfile: ${PWD}/Dockerfile-react
-    image: hoechenberger/webtaste-react:latest
+    image: hoechenberger/webtaste-react:2019.12.1
     depends_on:
       - flask
     restart: always
