@@ -507,6 +507,7 @@ class MeasurementWithIdApi(Resource):
                 measurement.thresholdSampleNumber = measurement.thresholdAtDp1SampleNumber
             else:
                 measurement.threshold = measurement.thresholdParam
+                measurement.thresholdSampleNumber = measurement.thresholdParamSampleNumber
 
             data = marshal(measurement, models.measurement)
             data['links'] = {
@@ -1232,11 +1233,11 @@ def _gen_quest_report_olfactory(measurement):
     date_utc = dt_utc.strftime('%Y-%m-%d %H:%M:%S')
     time_zone = 'GMT'
 
-    threshold = measurement.threshold
-    threshold_sample_num = measurement.thresholdSampleNumber
-    slope = measurement.slope
-    lower_asymptote = measurement.lowerAsymptote
-    lapse_rate = measurement.lapseRate
+    threshold = measurement.thresholdParam
+    threshold_sample_num = measurement.thresholdParamSampleNumber
+    slope = measurement.slopeParam
+    lower_asymptote = measurement.lowerAsymptoteParam
+    lapse_rate = measurement.lapseRateParam
 
     data_threshold = pd.DataFrame(
         dict(
